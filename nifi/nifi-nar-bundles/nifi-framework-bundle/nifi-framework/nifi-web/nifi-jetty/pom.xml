@@ -152,6 +152,11 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-web-docs</artifactId>
             <type>war</type>
+        </dependency> 
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-web-data-viewer</artifactId>
+            <type>war</type>
         </dependency>   
         <dependency>
             <groupId>org.apache.nifi</groupId>

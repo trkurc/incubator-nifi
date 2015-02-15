@@ -16,35 +16,36 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-standard-bundle</artifactId>
+        <artifactId>nifi-web</artifactId>
         <version>0.0.2-incubating-SNAPSHOT</version>
     </parent>
-    <artifactId>nifi-standard-nar</artifactId>
-    <version>0.0.2-incubating-SNAPSHOT</version>
-    <packaging>nar</packaging>
-    <description>NiFi Standard Extensions NAR</description>
+    <groupId>org.apache.nifi</groupId>
+    <artifactId>nifi-web-data-viewer</artifactId>
+    <packaging>war</packaging>
     <dependencies>
         <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-standard-services-api-nar</artifactId>
-            <type>nar</type>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-standard-processors</artifactId>
+            <groupId>javax.servlet.jsp</groupId>
+            <artifactId>javax.servlet.jsp-api</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-standard-prioritizers</artifactId>
+            <groupId>javax.el</groupId>
+            <artifactId>javax.el-api</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-standard-reporting-tasks</artifactId>
+            <groupId>javax.servlet.jsp.jstl</groupId>
+            <artifactId>javax.servlet.jsp.jstl-api</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-standard-data-viewer</artifactId>
-            <type>war</type>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 </project>
