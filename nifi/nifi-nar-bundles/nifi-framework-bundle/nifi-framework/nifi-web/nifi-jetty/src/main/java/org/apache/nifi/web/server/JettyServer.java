@@ -100,7 +100,7 @@ public class JettyServer implements NiFiServer {
     private WebAppContext webApiContext;
     private WebAppContext webDocsContext;
     private Collection<WebAppContext> customUiWebContexts;
-    private Collection<WebAppContext> dataViewerWebContexts;
+    private Collection<WebAppContext> contentViewerWebContexts;
     private final NiFiProperties props;
 
     /**
@@ -165,7 +165,7 @@ public class JettyServer implements NiFiServer {
         File webApiWar = null;
         File webErrorWar = null;
         File webDocsWar = null;
-        File webDataViewerWar = null;
+        File webContentViewerWar = null;
         List<File> otherWars = new ArrayList<>();
         for (File war : warToNarWorkingDirectoryLookup.keySet()) {
             if (war.getName().toLowerCase().startsWith("nifi-web-api")) {
@@ -174,8 +174,8 @@ public class JettyServer implements NiFiServer {
                 webErrorWar = war;
             } else if (war.getName().toLowerCase().startsWith("nifi-web-docs")) {
                 webDocsWar = war;
-            } else if (war.getName().toLowerCase().startsWith("nifi-web-data-viewer")) {
-                webDataViewerWar = war;
+            } else if (war.getName().toLowerCase().startsWith("nifi-web-content-viewer")) {
+                webContentViewerWar = war;
             } else if (war.getName().toLowerCase().startsWith("nifi-web")) {
                 webUiWar = war;
             } else {
@@ -192,8 +192,8 @@ public class JettyServer implements NiFiServer {
             throw new RuntimeException("Unable to load nifi-web-docs WAR");
         } else if (webErrorWar == null) {
             throw new RuntimeException("Unable to load nifi-web-error WAR");
-        } else if (webDataViewerWar == null) {
-            throw new RuntimeException("Unable to load nifi-web-data-viewer WAR");
+        } else if (webContentViewerWar == null) {
+            throw new RuntimeException("Unable to load nifi-web-content-viewer WAR");
         }
 
         // handlers for each war and init params for the web api
@@ -206,13 +206,15 @@ public class JettyServer implements NiFiServer {
         // deploy the other wars
         if (CollectionUtils.isNotEmpty(otherWars)) {
             customUiWebContexts = new ArrayList<>();
+            contentViewerWebContexts = new ArrayList<>();
+            
             for (File war : otherWars) {
                 // see if this war is a custom processor ui
                 List<String> customUiProcessorTypes = getWarExtensions(war, "META-INF/nifi-processor");
-                List<String> dataViewerMimeTypes = getWarExtensions(war, "META-INF/nifi-data-viewer");
+                List<String> contentViewerMimeTypes = getWarExtensions(war, "META-INF/nifi-content-viewer");
 
                 // only include wars that are for extensions
-                if (!customUiProcessorTypes.isEmpty() || !dataViewerMimeTypes.isEmpty()) {
+                if (!customUiProcessorTypes.isEmpty() || !contentViewerMimeTypes.isEmpty()) {
                     String warName = StringUtils.substringBeforeLast(war.getName(), ".");
                     String warContextPath = String.format("/%s", warName);
 
@@ -232,7 +234,7 @@ public class JettyServer implements NiFiServer {
                         customUiWebContexts.add(extensionUiContext);
                     } else {
                         // record the mime type to web app mapping (need to handle type collision)
-                        dataViewerWebContexts.add(extensionUiContext);
+                        contentViewerWebContexts.add(extensionUiContext);
                     }
 
                     // include custom ui web context in the handlers
@@ -243,8 +245,8 @@ public class JettyServer implements NiFiServer {
                         // map the processor type to the custom ui path
                         customUiMappings.put(customUiProcessorType, warContextPath);
                     }
-                    for (final String dataViewerMimeType : dataViewerMimeTypes) {
-                        mimeTypeMappings.put(dataViewerMimeType, warContextPath);
+                    for (final String contentViewerMimeType : contentViewerMimeTypes) {
+                        mimeTypeMappings.put(contentViewerMimeType, warContextPath);
                     }
                 }
             }
@@ -258,10 +260,10 @@ public class JettyServer implements NiFiServer {
         webApiContext.getInitParams().putAll(customUiMappings);
         handlers.addHandler(webApiContext);
 
-        // load the data viewer app
-        final WebAppContext webDataViewerContext = loadWar(webDataViewerWar, "/nifi-data-viewer", frameworkClassLoader);
-        webDataViewerContext.getInitParams().putAll(mimeTypeMappings);
-        handlers.addHandler(webDataViewerContext);
+        // load the content viewer app
+        final WebAppContext webContentViewerContext = loadWar(webContentViewerWar, "/nifi-content-viewer", frameworkClassLoader);
+        webContentViewerContext.getInitParams().putAll(mimeTypeMappings);
+        handlers.addHandler(webContentViewerContext);
         
         // create a web app for the docs
         final String docsContextPath = "/nifi-docs";
@@ -574,13 +576,13 @@ public class JettyServer implements NiFiServer {
                     }
                 }
                 
-                for (final WebAppContext dataViewerContext : dataViewerWebContexts) {
+                for (final WebAppContext contentViewerContext : contentViewerWebContexts) {
                     
                     
                     // add the security filter to any custom ui wars
                     final FilterHolder securityFilter = webApiContext.getServletHandler().getFilter("springSecurityFilterChain");
                     if (securityFilter != null) {
-                        dataViewerContext.addFilter(securityFilter, "/*", EnumSet.of(DispatcherType.REQUEST, DispatcherType.FORWARD, DispatcherType.INCLUDE));
+                        contentViewerContext.addFilter(securityFilter, "/*", EnumSet.of(DispatcherType.REQUEST, DispatcherType.FORWARD, DispatcherType.INCLUDE));
                     }
                 }
             }

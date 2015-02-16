@@ -43,7 +43,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-standard-data-viewer</artifactId>
+            <artifactId>nifi-standard-content-viewer</artifactId>
             <type>war</type>
         </dependency>
     </dependencies>

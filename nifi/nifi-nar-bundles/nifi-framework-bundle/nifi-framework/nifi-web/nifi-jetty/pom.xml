@@ -155,7 +155,7 @@
         </dependency> 
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-web-data-viewer</artifactId>
+            <artifactId>nifi-web-content-viewer</artifactId>
             <type>war</type>
         </dependency>   
         <dependency>
