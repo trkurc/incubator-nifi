@@ -14,11 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.data.viewer;
+package org.apache.nifi.web;
 
 import java.io.IOException;
-import java.util.Map;
-import javax.servlet.RequestDispatcher;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
@@ -31,8 +29,8 @@ import javax.servlet.http.HttpServletResponse;
 /**
  *
  */
-@WebServlet(name = "DataViewerController", urlPatterns = {"/*"})
-public class DataViewerController extends HttpServlet {
+@WebServlet(name = "StandardContentViewer", urlPatterns = {"/view-content"})
+public class StandardContentViewerController extends HttpServlet {
 
     /**
      *
@@ -43,21 +41,10 @@ public class DataViewerController extends HttpServlet {
      */
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        final ServletContext servletContext = request.getServletContext();
-        final String dataViewerUri = servletContext.getInitParameter("application/xml");
-        
-        // header
-//        final RequestDispatcher header = request.getRequestDispatcher("/WEB-INF/jsp/header.jsp");
-//        header.include(request, response);
-        
-        // content
-        final ServletContext viewerContext = servletContext.getContext(dataViewerUri);
-        final RequestDispatcher content = viewerContext.getRequestDispatcher("/content");
-        content.include(request, response);
-        
-        // footer
-//        final RequestDispatcher footer = request.getRequestDispatcher("/WEB-INF/jsp/footer.jsp");
-//        footer.include(request, response);
+//        final ExtensionMapping extensionMappings = (ExtensionMapping) servletContext.getAttribute("nifi-extension-mapping");
+
+        // forward appropriately
+        request.getRequestDispatcher("/WEB-INF/jsp/content.jsp").include(request, response);
     }
 
 }

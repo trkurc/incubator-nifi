@@ -15,13 +15,15 @@
 -->
 <web-app version="3.0" xmlns="http://java.sun.com/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd">
     <display-name>nifi-content-viewer</display-name>
-   
     <servlet>
-        <servlet-name>DataViewerController</servlet-name>
-        <servlet-class>org.apache.nifi.web.data.viewer.DataViewerController</servlet-class>
+        <servlet-name>ContentViewerController</servlet-name>
+        <servlet-class>org.apache.nifi.web.ContentViewerController</servlet-class>
     </servlet>
     <servlet-mapping>
-        <servlet-name>DataViewerController</servlet-name>
-        <url-pattern>/*</url-pattern>
+        <servlet-name>ContentViewerController</servlet-name>
+        <url-pattern>/viewer</url-pattern>
     </servlet-mapping>
+    <welcome-file-list>
+        <welcome-file>viewer</welcome-file>
+    </welcome-file-list>
 </web-app>
