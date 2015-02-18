@@ -17,11 +17,14 @@
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <!DOCTYPE html>
 <html>
+    <% String contextPath = "/".equals(request.getContextPath()) ? "" : request.getContextPath(); %>
     <head>
-        <title>NiFi</title>
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7"/>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
         <link rel="shortcut icon" href="../nifi/images/nifi16.ico"/>
-        <link href="../../css/component-usage.css" rel="stylesheet" type="text/css" />
+        <title>NiFi</title>
+        <link href="<%= contextPath %>/nifi/css/message-pane.css" rel="stylesheet" type="text/css" />
+        <link href="<%= contextPath %>/nifi/css/message-page.css" rel="stylesheet" type="text/css" />
     </head>
-    <body>
+
+    <body class="message-pane">
+        <div class="message-pane-message-box">
