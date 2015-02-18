@@ -32,6 +32,7 @@
         <module>nifi-web-content-viewer</module>
         <module>nifi-web-ui</module>
         <module>nifi-jetty</module>
+        <module>nifi-web-content-access</module>
     </modules>
     <dependencyManagement>
         <dependencies>

@@ -66,6 +66,11 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-web-content-access</artifactId>
+                <version>0.0.2-incubating-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-security</artifactId>
                 <version>0.0.2-incubating-SNAPSHOT</version>
             </dependency>
