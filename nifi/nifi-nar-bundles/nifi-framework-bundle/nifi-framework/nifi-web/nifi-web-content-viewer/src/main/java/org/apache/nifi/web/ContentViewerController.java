@@ -18,17 +18,14 @@ package org.apache.nifi.web;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Map;
 import javax.servlet.RequestDispatcher;
 
-import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,8 +36,6 @@ import org.slf4j.LoggerFactory;
 public class ContentViewerController extends HttpServlet {
 
     private static final Logger logger = LoggerFactory.getLogger(ContentViewerController.class);
-    
-    private static final String CONTENT_REQUEST_ATTRIBUTE = "org.apache.nifi.web.content";
     
     // context for accessing the extension mapping
 //    private ServletContext servletContext;
@@ -59,13 +54,33 @@ public class ContentViewerController extends HttpServlet {
      * @throws IOException if an I/O error occurs
      */
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    protected void doGet(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
         logger.info(request.getServletPath());
         
         // get the content
         final ServletContext servletContext = request.getServletContext();
         final ContentAccess contentAccess = (ContentAccess) servletContext.getAttribute("nifi-content-access");
-        final DownloadableContent downloadableContent = contentAccess.getContent(request.getParameter("ref"));
+        final DownloadableContent downloadableContent = contentAccess.getContent(new ContentRequestContext() {
+            @Override
+            public String getDataUri() {
+                return request.getParameter("ref");
+            }
+
+            @Override
+            public String getClusterNodeId() {
+                return request.getParameter("clusterNodeId");
+            }
+
+            @Override
+            public String getClientId() {
+                return request.getParameter("clientId");
+            }
+
+            @Override
+            public String getProxiedEntitiesChain() {
+                return request.getHeader("X-ProxiedEntitiesChain");
+            }
+        });
         
         // ensure the content is found
         if (downloadableContent == null) {
@@ -75,7 +90,7 @@ public class ContentViewerController extends HttpServlet {
         // detect the content type
         
         // lookup a viewer for the content
-        final String contentViewerUri = servletContext.getInitParameter("application/xml");
+        final String contentViewerUri = servletContext.getInitParameter("application/json");
         
         // handle no viewer for content type
         if (contentViewerUri == null) {
@@ -87,7 +102,7 @@ public class ContentViewerController extends HttpServlet {
         header.include(request, response);
         
         // create a request attribute for accessing the content
-        request.setAttribute(CONTENT_REQUEST_ATTRIBUTE, new ViewableContent() {
+        request.setAttribute(ViewableContent.CONTENT_REQUEST_ATTRIBUTE, new ViewableContent() {
             @Override
             public InputStream getContent() {
                 return downloadableContent.getContent();
@@ -97,6 +112,11 @@ public class ContentViewerController extends HttpServlet {
             public String getFileName() {
                 return downloadableContent.getFilename();
             }
+
+            @Override
+            public String getContentType() {
+                return downloadableContent.getType();
+            }
         });
         
         // generate the content
@@ -105,7 +125,7 @@ public class ContentViewerController extends HttpServlet {
         content.include(request, response);
         
         // remove the request attribute
-        request.removeAttribute(CONTENT_REQUEST_ATTRIBUTE);
+        request.removeAttribute(ViewableContent.CONTENT_REQUEST_ATTRIBUTE);
         
         // generate footer
         final RequestDispatcher footer = request.getRequestDispatcher("/WEB-INF/jsp/footer.jsp");

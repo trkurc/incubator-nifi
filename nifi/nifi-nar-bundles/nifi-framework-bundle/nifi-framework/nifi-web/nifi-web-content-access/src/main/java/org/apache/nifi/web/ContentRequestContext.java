@@ -16,33 +16,12 @@
  */
 package org.apache.nifi.web;
 
-import java.io.InputStream;
-
 /**
- * Interface for obtaining content from the NiFi content repository.
+ *
  */
-public interface ViewableContent {
-
-    public static final String CONTENT_REQUEST_ATTRIBUTE = "org.apache.nifi.web.content";
-    
-    /**
-     * The stream to the viewable content.
-     * 
-     * @return 
-     */
-    InputStream getContent();
-    
-    /**
-     * The contents file name.
-     *  
-     * @return 
-     */
-    String getFileName();
-    
-    /**
-     * The mime type of the content.
-     * 
-     * @return 
-     */
-    String getContentType();
+public interface ContentRequestContext {
+    String getDataUri();
+    String getClusterNodeId();
+    String getClientId();
+    String getProxiedEntitiesChain();
 }

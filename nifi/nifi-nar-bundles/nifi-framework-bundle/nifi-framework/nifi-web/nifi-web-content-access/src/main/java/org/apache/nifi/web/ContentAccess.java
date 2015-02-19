@@ -25,8 +25,8 @@ public interface ContentAccess {
     /**
      * Gets the content for the specified claim.
      *
-     * @param ref
+     * @param request
      * @return
      */
-    DownloadableContent getContent(String ref);
+    DownloadableContent getContent(ContentRequestContext request);
 }

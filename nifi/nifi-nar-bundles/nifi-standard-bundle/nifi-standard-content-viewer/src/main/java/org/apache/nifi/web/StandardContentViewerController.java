@@ -17,6 +17,7 @@
 package org.apache.nifi.web;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
@@ -25,6 +26,7 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.commons.io.IOUtils;
 
 /**
  *
@@ -41,10 +43,15 @@ public class StandardContentViewerController extends HttpServlet {
      */
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-//        final ExtensionMapping extensionMappings = (ExtensionMapping) servletContext.getAttribute("nifi-extension-mapping");
-
-        // forward appropriately
-        request.getRequestDispatcher("/WEB-INF/jsp/content.jsp").include(request, response);
+        
+        final ViewableContent content = (ViewableContent) request.getAttribute(ViewableContent.CONTENT_REQUEST_ATTRIBUTE);
+        
+        // handle json/xml
+        if ("application/json".equals(content.getContentType()) || "application/xml".equals(content.getContentType())) {
+            request.setAttribute("content", IOUtils.toString(content.getContent(), StandardCharsets.UTF_8));
+            request.getRequestDispatcher("/WEB-INF/jsp/codemirror.jsp").include(request, response);
+        } 
+        
     }
 
 }
