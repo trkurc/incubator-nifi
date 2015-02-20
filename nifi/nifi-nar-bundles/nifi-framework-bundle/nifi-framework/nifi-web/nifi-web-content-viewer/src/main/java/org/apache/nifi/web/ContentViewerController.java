@@ -16,8 +16,10 @@
  */
 package org.apache.nifi.web;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintWriter;
 import javax.servlet.RequestDispatcher;
 
 import javax.servlet.ServletContext;
@@ -26,6 +28,10 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.tika.detect.DefaultDetector;
+import org.apache.tika.io.TikaInputStream;
+import org.apache.tika.metadata.Metadata;
+import org.apache.tika.mime.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,16 +42,7 @@ import org.slf4j.LoggerFactory;
 public class ContentViewerController extends HttpServlet {
 
     private static final Logger logger = LoggerFactory.getLogger(ContentViewerController.class);
-    
-    // context for accessing the extension mapping
-//    private ServletContext servletContext;
-//
-//    @Override
-//    public void init(final ServletConfig config) throws ServletException {
-//        super.init(config);
-//        servletContext = config.getServletContext();
-//    }
-    
+
     /**
      *
      * @param request servlet request
@@ -55,8 +52,6 @@ public class ContentViewerController extends HttpServlet {
      */
     @Override
     protected void doGet(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
-        logger.info(request.getServletPath());
-        
         // get the content
         final ServletContext servletContext = request.getServletContext();
         final ContentAccess contentAccess = (ContentAccess) servletContext.getAttribute("nifi-content-access");
@@ -81,31 +76,49 @@ public class ContentViewerController extends HttpServlet {
                 return request.getHeader("X-ProxiedEntitiesChain");
             }
         });
-        
+
         // ensure the content is found
         if (downloadableContent == null) {
-            
+            response.getWriter().println("No content...");
+            return;
         }
-        
+
         // detect the content type
+        final DefaultDetector detector = new DefaultDetector();
+
+        // create the stream for tika to process, buffer to support reseting
+        final BufferedInputStream bis = new BufferedInputStream(downloadableContent.getContent());
+        final TikaInputStream tikaStream = TikaInputStream.get(bis);
+        final Metadata metadata = new Metadata();
+        metadata.set(Metadata.RESOURCE_NAME_KEY, downloadableContent.getFilename());
+        
+        // Get mime type
+        final MediaType mediatype = detector.detect(tikaStream, metadata);
+        final String mimeType = mediatype.toString();
         
         // lookup a viewer for the content
-        final String contentViewerUri = servletContext.getInitParameter("application/json");
-        
+        final String contentViewerUri = servletContext.getInitParameter(mimeType);
+
         // handle no viewer for content type
         if (contentViewerUri == null) {
+            final PrintWriter out = response.getWriter();
+            out.println("No viewer...");
+            out.println("identified mime type: " + mimeType);
+            out.println("filename: " + downloadableContent.getFilename());
+            out.println("type: " + downloadableContent.getType());
             
+            return;
         }
-        
+
         // generate the header
         final RequestDispatcher header = request.getRequestDispatcher("/WEB-INF/jsp/header.jsp");
         header.include(request, response);
-        
+
         // create a request attribute for accessing the content
         request.setAttribute(ViewableContent.CONTENT_REQUEST_ATTRIBUTE, new ViewableContent() {
             @Override
             public InputStream getContent() {
-                return downloadableContent.getContent();
+                return bis;
             }
 
             @Override
@@ -115,18 +128,18 @@ public class ContentViewerController extends HttpServlet {
 
             @Override
             public String getContentType() {
-                return downloadableContent.getType();
+                return mimeType;
             }
         });
-        
+
         // generate the content
         final ServletContext viewerContext = servletContext.getContext(contentViewerUri);
         final RequestDispatcher content = viewerContext.getRequestDispatcher("/view-content");
         content.include(request, response);
-        
+
         // remove the request attribute
         request.removeAttribute(ViewableContent.CONTENT_REQUEST_ATTRIBUTE);
-        
+
         // generate footer
         final RequestDispatcher footer = request.getRequestDispatcher("/WEB-INF/jsp/footer.jsp");
         footer.include(request, response);
