@@ -15,4 +15,28 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<p>${content}</p>
+<link rel="stylesheet" href="../nifi/js/codemirror/lib/codemirror.css" type="text/css" />
+<script type="text/javascript" src="../nifi/js/codemirror/lib/codemirror-compressed.js"></script>
+
+<textarea id="codemirror-content">${content}</textarea>
+
+<style>
+    #codemirror-content {
+        width: 500px;
+    }
+</style>
+
+<script type="text/javascript">
+    function formatContent() {
+        var field = document.getElementById('codemirror-content');
+        var editor = CodeMirror.fromTextArea(field, {
+            mode: '${mode}',
+            lineNumbers: true,
+            matchBrackets: true,
+            readOnly: true,
+            width: 500
+        });
+    }
+    
+    formatContent();
+</script>

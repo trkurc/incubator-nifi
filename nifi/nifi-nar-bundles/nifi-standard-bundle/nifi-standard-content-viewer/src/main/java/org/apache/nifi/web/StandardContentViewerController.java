@@ -19,14 +19,13 @@ package org.apache.nifi.web;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.io.IOUtils;
+import org.codehaus.jackson.map.ObjectMapper;
 
 /**
  *
@@ -43,12 +42,25 @@ public class StandardContentViewerController extends HttpServlet {
      */
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        
         final ViewableContent content = (ViewableContent) request.getAttribute(ViewableContent.CONTENT_REQUEST_ATTRIBUTE);
         
         // handle json/xml
         if ("application/json".equals(content.getContentType()) || "application/xml".equals(content.getContentType())) {
-            request.setAttribute("content", IOUtils.toString(content.getContent(), StandardCharsets.UTF_8));
+            final String formatted;
+            
+            // format the content
+            if ("application/json".equals(content.getContentType())) {
+                final String json = IOUtils.toString(content.getContent(), StandardCharsets.UTF_8);
+                final ObjectMapper mapper = new ObjectMapper();
+                final Object objectJson = mapper.readValue(json, Object.class);
+                formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(objectJson);
+            } else {
+                formatted = "";
+            }
+            
+            // defer the jsp
+            request.setAttribute("mode", content.getContentType());
+            request.setAttribute("content", formatted);
             request.getRequestDispatcher("/WEB-INF/jsp/codemirror.jsp").include(request, response);
         } 
         
