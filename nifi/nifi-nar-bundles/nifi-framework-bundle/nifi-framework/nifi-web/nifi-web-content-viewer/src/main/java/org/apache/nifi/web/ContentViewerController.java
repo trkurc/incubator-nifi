@@ -20,6 +20,7 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.nio.charset.Charset;
 import javax.servlet.RequestDispatcher;
 
 import javax.servlet.ServletContext;
@@ -28,10 +29,13 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.commons.io.IOUtils;
 import org.apache.tika.detect.DefaultDetector;
 import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.mime.MediaType;
+import org.apache.tika.parser.txt.CharsetDetector;
+import org.apache.tika.parser.txt.CharsetMatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,27 +59,7 @@ public class ContentViewerController extends HttpServlet {
         // get the content
         final ServletContext servletContext = request.getServletContext();
         final ContentAccess contentAccess = (ContentAccess) servletContext.getAttribute("nifi-content-access");
-        final DownloadableContent downloadableContent = contentAccess.getContent(new ContentRequestContext() {
-            @Override
-            public String getDataUri() {
-                return request.getParameter("ref");
-            }
-
-            @Override
-            public String getClusterNodeId() {
-                return request.getParameter("clusterNodeId");
-            }
-
-            @Override
-            public String getClientId() {
-                return request.getParameter("clientId");
-            }
-
-            @Override
-            public String getProxiedEntitiesChain() {
-                return request.getHeader("X-ProxiedEntitiesChain");
-            }
-        });
+        final DownloadableContent downloadableContent = contentAccess.getContent(getContentRequest(request));
 
         // ensure the content is found
         if (downloadableContent == null) {
@@ -89,6 +73,8 @@ public class ContentViewerController extends HttpServlet {
         // create the stream for tika to process, buffer to support reseting
         final BufferedInputStream bis = new BufferedInputStream(downloadableContent.getContent());
         final TikaInputStream tikaStream = TikaInputStream.get(bis);
+        
+        // provide a hint based on the filename
         final Metadata metadata = new Metadata();
         metadata.set(Metadata.RESOURCE_NAME_KEY, downloadableContent.getFilename());
         
@@ -117,8 +103,25 @@ public class ContentViewerController extends HttpServlet {
         // create a request attribute for accessing the content
         request.setAttribute(ViewableContent.CONTENT_REQUEST_ATTRIBUTE, new ViewableContent() {
             @Override
-            public InputStream getContent() {
+            public InputStream getContentStream() {
                 return bis;
+            }
+
+            @Override
+            public String getContent() throws IOException {
+                // detect the charset
+                final CharsetDetector detector = new CharsetDetector();
+                detector.setText(bis);
+                detector.enableInputFilter(true);
+                final CharsetMatch match = detector.detect();
+                
+                // ensure we were able to detect the charset
+                if (match == null) {
+                    throw new IOException("Unable to detect character encoding.");
+                }
+                
+                // convert the stream using the detected charset
+                return IOUtils.toString(bis, match.getName());
             }
 
             @Override
@@ -145,4 +148,32 @@ public class ContentViewerController extends HttpServlet {
         footer.include(request, response);
     }
 
+    /**
+     * Get the content request context based on the specified request.
+     * @param request
+     * @return 
+     */
+    private ContentRequestContext getContentRequest(final HttpServletRequest request) {
+        return new ContentRequestContext() {
+            @Override
+            public String getDataUri() {
+                return request.getParameter("ref");
+            }
+
+            @Override
+            public String getClusterNodeId() {
+                return request.getParameter("clusterNodeId");
+            }
+
+            @Override
+            public String getClientId() {
+                return request.getParameter("clientId");
+            }
+
+            @Override
+            public String getProxiedEntitiesChain() {
+                return request.getHeader("X-ProxiedEntitiesChain");
+            }
+        };
+    }
 }

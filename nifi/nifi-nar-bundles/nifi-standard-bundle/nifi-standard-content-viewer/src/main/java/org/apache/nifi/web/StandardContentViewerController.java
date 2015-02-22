@@ -43,6 +43,7 @@ public class StandardContentViewerController extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         final ViewableContent content = (ViewableContent) request.getAttribute(ViewableContent.CONTENT_REQUEST_ATTRIBUTE);
+        final String contentString = content.getContent();
         
         // handle json/xml
         if ("application/json".equals(content.getContentType()) || "application/xml".equals(content.getContentType())) {
@@ -50,9 +51,8 @@ public class StandardContentViewerController extends HttpServlet {
             
             // format the content
             if ("application/json".equals(content.getContentType())) {
-                final String json = IOUtils.toString(content.getContent(), StandardCharsets.UTF_8);
                 final ObjectMapper mapper = new ObjectMapper();
-                final Object objectJson = mapper.readValue(json, Object.class);
+                final Object objectJson = mapper.readValue(contentString, Object.class);
                 formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(objectJson);
             } else {
                 formatted = "";

@@ -17,17 +17,12 @@
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <link rel="stylesheet" href="../nifi/js/codemirror/lib/codemirror.css" type="text/css" />
 <script type="text/javascript" src="../nifi/js/codemirror/lib/codemirror-compressed.js"></script>
+<script type="text/javascript" src="../nifi/js/jquery/jquery-2.1.1.min.js"></script>
 
 <textarea id="codemirror-content">${content}</textarea>
 
-<style>
-    #codemirror-content {
-        width: 500px;
-    }
-</style>
-
 <script type="text/javascript">
-    function formatContent() {
+    $(document).ready(function() {
         var field = document.getElementById('codemirror-content');
         var editor = CodeMirror.fromTextArea(field, {
             mode: '${mode}',
@@ -36,7 +31,15 @@
             readOnly: true,
             width: 500
         });
-    }
-    
-    formatContent();
+        
+        var setEditorSize = function() {
+            editor.setSize($(window).width() - 150, $(window).height() - 150);
+        };
+        
+        // reset the editor size when the window changes
+        $(window).resize(setEditorSize);
+        
+        // initialize the editor size
+        setEditorSize();
+    });
 </script>

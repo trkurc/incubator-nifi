@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web;
 
+import java.io.IOException;
 import java.io.InputStream;
 
 /**
@@ -30,7 +31,15 @@ public interface ViewableContent {
      * 
      * @return 
      */
-    InputStream getContent();
+    InputStream getContentStream();
+
+    /**
+     * Gets the content as a string.
+     * 
+     * @return 
+     * @throws java.io.IOException 
+     */
+    String getContent() throws IOException;
     
     /**
      * The contents file name.
