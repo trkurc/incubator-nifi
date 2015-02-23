@@ -16,6 +16,7 @@
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <link rel="stylesheet" href="../nifi/js/codemirror/lib/codemirror.css" type="text/css" />
+<link rel="stylesheet" href="../nifi/js/codemirror/addon/fold/foldgutter.css" type="text/css" />
 <script type="text/javascript" src="../nifi/js/codemirror/lib/codemirror-compressed.js"></script>
 <script type="text/javascript" src="../nifi/js/jquery/jquery-2.1.1.min.js"></script>
 
@@ -28,8 +29,9 @@
             mode: '${mode}',
             lineNumbers: true,
             matchBrackets: true,
+            foldGutter: true,
+            gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
             readOnly: true,
-            width: 500
         });
         
         var setEditorSize = function() {

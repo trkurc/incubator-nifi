@@ -17,14 +17,20 @@
 package org.apache.nifi.web;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.io.StringWriter;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import org.apache.commons.io.IOUtils;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.TransformerFactoryConfigurationError;
+import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.stream.StreamSource;
 import org.codehaus.jackson.map.ObjectMapper;
 
 /**
@@ -43,19 +49,34 @@ public class StandardContentViewerController extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         final ViewableContent content = (ViewableContent) request.getAttribute(ViewableContent.CONTENT_REQUEST_ATTRIBUTE);
-        final String contentString = content.getContent();
         
         // handle json/xml
         if ("application/json".equals(content.getContentType()) || "application/xml".equals(content.getContentType())) {
             final String formatted;
             
-            // format the content
             if ("application/json".equals(content.getContentType())) {
                 final ObjectMapper mapper = new ObjectMapper();
-                final Object objectJson = mapper.readValue(contentString, Object.class);
+                final Object objectJson = mapper.readValue(content.getContent(), Object.class);
                 formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(objectJson);
             } else {
-                formatted = "";
+                final StringWriter writer = new StringWriter();
+
+                try {
+                    final StreamSource source = new StreamSource(content.getContentStream());
+                    final StreamResult result = new StreamResult(writer);
+                    
+                    final TransformerFactory transformFactory = TransformerFactory.newInstance();
+                    final Transformer transformer = transformFactory.newTransformer();
+                    transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
+                    transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+
+                    transformer.transform(source, result);
+                } catch (final TransformerFactoryConfigurationError | TransformerException te) {
+                    throw new IOException("Unable to transform content as XML: " + te, te);
+                }
+                
+                // get the transformed xml
+                formatted = writer.toString();
             }
             
             // defer the jsp
