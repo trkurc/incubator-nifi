@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.StringWriter;
 
@@ -31,6 +32,8 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.TransformerFactoryConfigurationError;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.io.IOUtils;
 import org.codehaus.jackson.map.ObjectMapper;
 
 /**
@@ -79,12 +82,18 @@ public class StandardContentViewerController extends HttpServlet {
                 formatted = writer.toString();
             }
             
-            // defer the jsp
+            // defer to the jsp
             request.setAttribute("mode", content.getContentType());
             request.setAttribute("content", formatted);
             request.getRequestDispatcher("/WEB-INF/jsp/codemirror.jsp").include(request, response);
-        } 
-        
+        } else if ("application/octet-stream".equals(content.getContentType())) {
+            // convert stream into the base 64 bytes
+            final byte[] bytes = IOUtils.toByteArray(content.getContentStream());
+            final String base64 = Base64.encodeBase64String(bytes);
+            
+            // defer to the jsp
+            request.setAttribute("content", base64);
+            request.getRequestDispatcher("/WEB-INF/jsp/hexview.jsp").include(request, response);
+        }
     }
-
 }
