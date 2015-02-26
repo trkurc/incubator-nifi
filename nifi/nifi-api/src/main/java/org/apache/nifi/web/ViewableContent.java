@@ -26,6 +26,12 @@ public interface ViewableContent {
 
     public static final String CONTENT_REQUEST_ATTRIBUTE = "org.apache.nifi.web.content";
     
+    public enum DisplayMode {
+        Original,
+        Formatted,
+        Hex;
+    }
+    
     /**
      * The stream to the viewable content.
      * 
@@ -40,6 +46,15 @@ public interface ViewableContent {
      * @throws java.io.IOException 
      */
     String getContent() throws IOException;
+    
+    /**
+     * Returns the desired play mode. If the mode is Hex the
+     * framework will handle generating the mark up. The only
+     * values that an extension will see is Original or Formatted.
+     * 
+     * @return 
+     */
+    DisplayMode getDisplayMode();
     
     /**
      * The contents file name.

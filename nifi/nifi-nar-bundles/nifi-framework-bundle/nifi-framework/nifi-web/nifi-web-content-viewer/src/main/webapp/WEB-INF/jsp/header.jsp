@@ -24,6 +24,10 @@
         <link href="css/main.css" rel="stylesheet" type="text/css" />
         <link href="../nifi/css/message-pane.css" rel="stylesheet" type="text/css" />
         <link href="../nifi/css/message-page.css" rel="stylesheet" type="text/css" />
+        <link rel="stylesheet" href="../nifi/js/jquery/combo/jquery.combo.css" type="text/css" />
+        <script type="text/javascript" src="../nifi/js/jquery/jquery-2.1.1.min.js"></script>
+        <script type="text/javascript" src="../nifi/js/jquery/combo/jquery.combo.js"></script>
+        <script type="text/javascript" src="js/application.js"></script>
     </head>
 
     <body class="message-pane">

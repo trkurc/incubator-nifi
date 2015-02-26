@@ -20,7 +20,6 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
-import java.nio.charset.Charset;
 import javax.servlet.RequestDispatcher;
 
 import javax.servlet.ServletContext;
@@ -29,7 +28,9 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.web.ViewableContent.DisplayMode;
 import org.apache.tika.detect.DefaultDetector;
 import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
@@ -46,7 +47,7 @@ import org.slf4j.LoggerFactory;
 public class ContentViewerController extends HttpServlet {
 
     private static final Logger logger = LoggerFactory.getLogger(ContentViewerController.class);
-
+    
     /**
      *
      * @param request servlet request
@@ -67,81 +68,115 @@ public class ContentViewerController extends HttpServlet {
             return;
         }
 
-        // detect the content type
-        final DefaultDetector detector = new DefaultDetector();
-
-        // create the stream for tika to process, buffer to support reseting
-        final BufferedInputStream bis = new BufferedInputStream(downloadableContent.getContent());
-        final TikaInputStream tikaStream = TikaInputStream.get(bis);
+        // determine how we want to view the data
+        String mode = request.getParameter("mode");
         
-        // provide a hint based on the filename
-        final Metadata metadata = new Metadata();
-        metadata.set(Metadata.RESOURCE_NAME_KEY, downloadableContent.getFilename());
+        // if the name isn't set, use original
+        if (mode == null) {
+            mode = DisplayMode.Original.name();
+        }
         
-        // Get mime type
-        final MediaType mediatype = detector.detect(tikaStream, metadata);
-        final String mimeType = mediatype.toString();
-        
-        // lookup a viewer for the content
-        final String contentViewerUri = servletContext.getInitParameter(mimeType);
-
-        // handle no viewer for content type
-        if (contentViewerUri == null) {
+        final DisplayMode displayMode;
+        try {
+            displayMode = DisplayMode.valueOf(mode);
+        } catch (final IllegalArgumentException iae) {
             final PrintWriter out = response.getWriter();
-            out.println("No viewer...");
-            out.println("identified mime type: " + mimeType);
-            out.println("filename: " + downloadableContent.getFilename());
-            out.println("type: " + downloadableContent.getType());
+            out.println("Invalid display mode: " + mode);
             
             return;
         }
-
+        
         // generate the header
         final RequestDispatcher header = request.getRequestDispatcher("/WEB-INF/jsp/header.jsp");
         header.include(request, response);
+        
+        // generate the markup for the content based on the display mode
+        if (DisplayMode.Hex.equals(displayMode)) {
+            // convert stream into the base 64 bytes
+            final byte[] bytes = IOUtils.toByteArray(downloadableContent.getContent());
+            final String base64 = Base64.encodeBase64String(bytes);
+            
+            // defer to the jsp
+            request.setAttribute("content", base64);
+            request.getRequestDispatcher("/WEB-INF/jsp/hexview.jsp").include(request, response);
+        } else {
+            // detect the content type
+            final DefaultDetector detector = new DefaultDetector();
 
-        // create a request attribute for accessing the content
-        request.setAttribute(ViewableContent.CONTENT_REQUEST_ATTRIBUTE, new ViewableContent() {
-            @Override
-            public InputStream getContentStream() {
-                return bis;
+            // create the stream for tika to process, buffer to support reseting
+            final BufferedInputStream bis = new BufferedInputStream(downloadableContent.getContent());
+            final TikaInputStream tikaStream = TikaInputStream.get(bis);
+
+            // provide a hint based on the filename
+            final Metadata metadata = new Metadata();
+            metadata.set(Metadata.RESOURCE_NAME_KEY, downloadableContent.getFilename());
+
+            // Get mime type
+            final MediaType mediatype = detector.detect(tikaStream, metadata);
+            final String mimeType = mediatype.toString();
+
+            // lookup a viewer for the content
+            final String contentViewerUri = servletContext.getInitParameter(mimeType);
+
+            // handle no viewer for content type
+            if (contentViewerUri == null) {
+                final PrintWriter out = response.getWriter();
+                out.println("No viewer...");
+                out.println("identified mime type: " + mimeType);
+                out.println("filename: " + downloadableContent.getFilename());
+                out.println("type: " + downloadableContent.getType());
+
+                return;
             }
 
-            @Override
-            public String getContent() throws IOException {
-                // detect the charset
-                final CharsetDetector detector = new CharsetDetector();
-                detector.setText(bis);
-                detector.enableInputFilter(true);
-                final CharsetMatch match = detector.detect();
-                
-                // ensure we were able to detect the charset
-                if (match == null) {
-                    throw new IOException("Unable to detect character encoding.");
+            // create a request attribute for accessing the content
+            request.setAttribute(ViewableContent.CONTENT_REQUEST_ATTRIBUTE, new ViewableContent() {
+                @Override
+                public InputStream getContentStream() {
+                    return bis;
                 }
-                
-                // convert the stream using the detected charset
-                return IOUtils.toString(bis, match.getName());
-            }
 
-            @Override
-            public String getFileName() {
-                return downloadableContent.getFilename();
-            }
+                @Override
+                public String getContent() throws IOException {
+                    // detect the charset
+                    final CharsetDetector detector = new CharsetDetector();
+                    detector.setText(bis);
+                    detector.enableInputFilter(true);
+                    final CharsetMatch match = detector.detect();
 
-            @Override
-            public String getContentType() {
-                return mimeType;
-            }
-        });
+                    // ensure we were able to detect the charset
+                    if (match == null) {
+                        throw new IOException("Unable to detect character encoding.");
+                    }
 
-        // generate the content
-        final ServletContext viewerContext = servletContext.getContext(contentViewerUri);
-        final RequestDispatcher content = viewerContext.getRequestDispatcher("/view-content");
-        content.include(request, response);
+                    // convert the stream using the detected charset
+                    return IOUtils.toString(bis, match.getName());
+                }
 
-        // remove the request attribute
-        request.removeAttribute(ViewableContent.CONTENT_REQUEST_ATTRIBUTE);
+                @Override
+                public ViewableContent.DisplayMode getDisplayMode() {
+                    return displayMode;
+                }
+
+                @Override
+                public String getFileName() {
+                    return downloadableContent.getFilename();
+                }
+
+                @Override
+                public String getContentType() {
+                    return mimeType;
+                }
+            });
+
+            // generate the content
+            final ServletContext viewerContext = servletContext.getContext(contentViewerUri);
+            final RequestDispatcher content = viewerContext.getRequestDispatcher("/view-content");
+            content.include(request, response);
+
+            // remove the request attribute
+            request.removeAttribute(ViewableContent.CONTENT_REQUEST_ATTRIBUTE);
+        }
 
         // generate footer
         final RequestDispatcher footer = request.getRequestDispatcher("/WEB-INF/jsp/footer.jsp");

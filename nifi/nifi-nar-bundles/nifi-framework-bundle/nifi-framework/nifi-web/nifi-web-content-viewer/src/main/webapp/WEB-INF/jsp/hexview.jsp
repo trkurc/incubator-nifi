@@ -15,9 +15,8 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<script type="text/javascript" src="../nifi/js/jquery/jquery-2.1.1.min.js"></script>
-<link rel="stylesheet" href="${request.contextPath}/js/hexview/hexview.default.css" type="text/css" />
-<script type="text/javascript" src="${pageContext.request.contextPath}/js/hexview/hexview.js"></script>
+<link rel="stylesheet" href="js/hexview/hexview.default.css" type="text/css" />
+<script type="text/javascript" src="js/hexview/hexview.js"></script>
 
 <div id="hexview-content" class="hexviewerwindow">
     ${content}

@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.web;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.StringWriter;
 
 import javax.servlet.ServletException;
@@ -34,6 +34,7 @@ import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.web.ViewableContent.DisplayMode;
 import org.codehaus.jackson.map.ObjectMapper;
 
 /**
@@ -57,43 +58,43 @@ public class StandardContentViewerController extends HttpServlet {
         if ("application/json".equals(content.getContentType()) || "application/xml".equals(content.getContentType())) {
             final String formatted;
             
-            if ("application/json".equals(content.getContentType())) {
-                final ObjectMapper mapper = new ObjectMapper();
-                final Object objectJson = mapper.readValue(content.getContent(), Object.class);
-                formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(objectJson);
+            // leave the content alone if specified
+            if (DisplayMode.Original.equals(content.getDisplayMode())) {
+                formatted = content.getContent();
             } else {
-                final StringWriter writer = new StringWriter();
+                if ("application/json".equals(content.getContentType())) {
+                    final ObjectMapper mapper = new ObjectMapper();
+                    final Object objectJson = mapper.readValue(content.getContent(), Object.class);
+                    formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(objectJson);
+                } else {
+                    final StringWriter writer = new StringWriter();
 
-                try {
-                    final StreamSource source = new StreamSource(content.getContentStream());
-                    final StreamResult result = new StreamResult(writer);
-                    
-                    final TransformerFactory transformFactory = TransformerFactory.newInstance();
-                    final Transformer transformer = transformFactory.newTransformer();
-                    transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
-                    transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+                    try {
+                        final StreamSource source = new StreamSource(content.getContentStream());
+                        final StreamResult result = new StreamResult(writer);
 
-                    transformer.transform(source, result);
-                } catch (final TransformerFactoryConfigurationError | TransformerException te) {
-                    throw new IOException("Unable to transform content as XML: " + te, te);
+                        final TransformerFactory transformFactory = TransformerFactory.newInstance();
+                        final Transformer transformer = transformFactory.newTransformer();
+                        transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
+                        transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+
+                        transformer.transform(source, result);
+                    } catch (final TransformerFactoryConfigurationError | TransformerException te) {
+                        throw new IOException("Unable to transform content as XML: " + te, te);
+                    }
+
+                    // get the transformed xml
+                    formatted = writer.toString();
                 }
-                
-                // get the transformed xml
-                formatted = writer.toString();
             }
             
             // defer to the jsp
             request.setAttribute("mode", content.getContentType());
             request.setAttribute("content", formatted);
             request.getRequestDispatcher("/WEB-INF/jsp/codemirror.jsp").include(request, response);
-        } else if ("application/octet-stream".equals(content.getContentType())) {
-            // convert stream into the base 64 bytes
-            final byte[] bytes = IOUtils.toByteArray(content.getContentStream());
-            final String base64 = Base64.encodeBase64String(bytes);
-            
-            // defer to the jsp
-            request.setAttribute("content", base64);
-            request.getRequestDispatcher("/WEB-INF/jsp/hexview.jsp").include(request, response);
+        } else {
+            final PrintWriter out = response.getWriter();
+            out.println("Unexpected content type: " + content.getContentType());
         }
     }
 }
