@@ -18,3 +18,27 @@
     margin: 0;
     padding: 0;
 }
+
+#view-as-label {
+    position: absolute;
+    top: 72px;
+    left: 144px;
+    line-height: 24px;
+    font-size: 12px;
+}
+
+#view-as {
+    position: absolute;
+    top: 72px;
+    left: 200px;
+    width: 80px;
+    height: 18px;
+}
+
+.pointer {
+    cursor: pointer;
+}
+
+.hidden {
+    display: none;
+}

@@ -76,19 +76,26 @@ public class ContentViewerController extends HttpServlet {
             mode = DisplayMode.Original.name();
         }
         
+        // determine the display mode
         final DisplayMode displayMode;
         try {
             displayMode = DisplayMode.valueOf(mode);
         } catch (final IllegalArgumentException iae) {
-            final PrintWriter out = response.getWriter();
-            out.println("Invalid display mode: " + mode);
-            
+            response.getWriter().println("Invalid display mode: " + mode);
             return;
         }
         
+        // build the request url
+        final String queryParams = request.getQueryString();
+        final StringBuffer requestUrl = request.getRequestURL();
+        requestUrl.append("?").append(queryParams);
+        request.setAttribute("requestUrl", requestUrl);
+        
         // generate the header
-        final RequestDispatcher header = request.getRequestDispatcher("/WEB-INF/jsp/header.jsp");
-        header.include(request, response);
+        request.getRequestDispatcher("/WEB-INF/jsp/header.jsp").include(request, response);
+        
+        // remove the request url
+        request.removeAttribute("requestUrl");
         
         // generate the markup for the content based on the display mode
         if (DisplayMode.Hex.equals(displayMode)) {
@@ -128,7 +135,7 @@ public class ContentViewerController extends HttpServlet {
 
                 return;
             }
-
+            
             // create a request attribute for accessing the content
             request.setAttribute(ViewableContent.CONTENT_REQUEST_ATTRIBUTE, new ViewableContent() {
                 @Override
@@ -179,8 +186,7 @@ public class ContentViewerController extends HttpServlet {
         }
 
         // generate footer
-        final RequestDispatcher footer = request.getRequestDispatcher("/WEB-INF/jsp/footer.jsp");
-        footer.include(request, response);
+        request.getRequestDispatcher("/WEB-INF/jsp/footer.jsp").include(request, response);
     }
 
     /**

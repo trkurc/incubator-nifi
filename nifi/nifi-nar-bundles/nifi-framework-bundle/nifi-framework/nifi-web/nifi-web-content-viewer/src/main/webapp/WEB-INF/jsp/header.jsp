@@ -25,10 +25,44 @@
         <link href="../nifi/css/message-pane.css" rel="stylesheet" type="text/css" />
         <link href="../nifi/css/message-page.css" rel="stylesheet" type="text/css" />
         <link rel="stylesheet" href="../nifi/js/jquery/combo/jquery.combo.css" type="text/css" />
+        <link rel="stylesheet" href="../nifi/css/reset.css" type="text/css" />
         <script type="text/javascript" src="../nifi/js/jquery/jquery-2.1.1.min.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/combo/jquery.combo.js"></script>
-        <script type="text/javascript" src="js/application.js"></script>
+        <script type="text/javascript">
+            var $$ = $.noConflict(true);
+            $$(document).ready(function () {
+                $$('#view-as').combo({
+                    options: [{
+                            text: 'original',
+                            value: '${requestUrl}&mode=Original'
+                        }, {
+                            text: 'formatted',
+                            value: '${requestUrl}&mode=Formatted'
+                        }, {
+                            text: 'hex',
+                            value: '${requestUrl}&mode=Hex'
+                        }],
+                    select: function (option) {
+//                        var currentLocation = window.location.href;
+//                        if (option.text === 'original') {
+//                            if (currentLocation.indexOf('&mode=Original') === -1) {
+//                                window.location.href = option.value;
+//                            }
+//                        } else if (option.text === 'formatted') {
+//                            if (currentLocation.indexOf('&mode=Formatted') === -1) {
+//                                window.location.href = option.value;
+//                            }
+//                        } else if (option.text === 'hex') {
+//                            if (currentLocation.indexOf('&mode=Hex') === -1) {
+//                                window.location.href = option.value;
+//                            }
+//                        }
+                    }
+                });
+            });
+        </script>
     </head>
-
     <body class="message-pane">
+        <div id="view-as-label">View as</div>
+        <div id="view-as" class="pointer button-normal"></div>
         <div class="message-pane-message-box">

@@ -31,7 +31,7 @@
             matchBrackets: true,
             foldGutter: true,
             gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
-            readOnly: true,
+            readOnly: true
         });
         
         var setEditorSize = function() {
