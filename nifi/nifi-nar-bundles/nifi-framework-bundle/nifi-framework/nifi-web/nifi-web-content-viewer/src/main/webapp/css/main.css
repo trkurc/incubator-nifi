@@ -42,3 +42,9 @@
 .hidden {
     display: none;
 }
+
+/* hex viewer */
+
+#hexview-content td {
+    padding: 2px;
+}

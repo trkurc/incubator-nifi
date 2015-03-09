@@ -31,32 +31,54 @@
         <script type="text/javascript">
             var $$ = $.noConflict(true);
             $$(document).ready(function () {
+                var url = '${requestUrl}';
+                var ref = '${param.ref}';
+                
+                // create the parameters
+                var params = {
+                    ref: ref
+                };
+                
+                // include the cluster node if appropriate
+                var clusterNodeId = '${param.clusterNodeId}';
+                if (clusterNodeId !== null && clusterNodeId !== '') {
+                    params['clusterNodeId'] = clusterNodeId;
+                }
+                
+                // determine the appropriate mode to select initially
+                var initialMode = '${param.mode}';
+                if (initialMode === null && initialMode === '') {
+                    initialMode = 'Original';
+                }
+                
+                var currentLocation = null;
                 $$('#view-as').combo({
                     options: [{
                             text: 'original',
-                            value: '${requestUrl}&mode=Original'
+                            value: 'Original'
                         }, {
                             text: 'formatted',
-                            value: '${requestUrl}&mode=Formatted'
+                            value: 'Formatted'
                         }, {
                             text: 'hex',
-                            value: '${requestUrl}&mode=Hex'
+                            value: 'Hex'
                         }],
+                    selectedOption: {
+                        value: initialMode
+                    },
                     select: function (option) {
-//                        var currentLocation = window.location.href;
-//                        if (option.text === 'original') {
-//                            if (currentLocation.indexOf('&mode=Original') === -1) {
-//                                window.location.href = option.value;
-//                            }
-//                        } else if (option.text === 'formatted') {
-//                            if (currentLocation.indexOf('&mode=Formatted') === -1) {
-//                                window.location.href = option.value;
-//                            }
-//                        } else if (option.text === 'hex') {
-//                            if (currentLocation.indexOf('&mode=Hex') === -1) {
-//                                window.location.href = option.value;
-//                            }
-//                        }
+                        // just record the selection during creation
+                        if (currentLocation === null) {
+                            currentLocation = option.value;
+                            return;
+                        }
+                        
+                        // if the selection has changesd, reload the page
+                        if (currentLocation !== option.value) {
+                            window.location.href = url + '?' + $$.param($$.extend({
+                                mode: option.value
+                            }, params));
+                        }
                     }
                 });
             });

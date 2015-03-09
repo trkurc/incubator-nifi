@@ -86,16 +86,16 @@ public class ContentViewerController extends HttpServlet {
         }
         
         // build the request url
-        final String queryParams = request.getQueryString();
         final StringBuffer requestUrl = request.getRequestURL();
-        requestUrl.append("?").append(queryParams);
-        request.setAttribute("requestUrl", requestUrl);
+        request.setAttribute("requestUrl", requestUrl.toString());
+        request.setAttribute("dataRef", request.getParameter("ref"));
         
         // generate the header
         request.getRequestDispatcher("/WEB-INF/jsp/header.jsp").include(request, response);
         
         // remove the request url
         request.removeAttribute("requestUrl");
+        request.removeAttribute("dataRef");
         
         // generate the markup for the content based on the display mode
         if (DisplayMode.Hex.equals(displayMode)) {

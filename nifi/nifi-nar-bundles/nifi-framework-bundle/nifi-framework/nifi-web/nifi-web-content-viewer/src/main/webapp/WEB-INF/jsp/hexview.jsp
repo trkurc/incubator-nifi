@@ -19,17 +19,12 @@
 <script type="text/javascript" src="../nifi/js/jquery/jquery-2.1.1.min.js"></script>
 <script type="text/javascript" src="js/hexview/hexview.js"></script>
 
-<div id="hexview-content" class="hexviewerwindow">
+<div id="hexview-content" class="hexviewwindow" title="">
     ${content}
     <form id="hexviewwindow_params">
         <input type="hidden" name="highlights" value="" />
         <input type="hidden" name="row_width" value="16" />
-        <input type="hidden" name="word_size" value="1" />
+        <input type="hidden" name="word_size" value="2" />
         <input type="hidden" name="caption" value="" />
     </form>
 </div>
-
-<script type="text/javascript">
-    $(document).ready(function () {
-    });
-</script>
