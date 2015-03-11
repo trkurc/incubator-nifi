@@ -64,7 +64,12 @@ public class ContentViewerController extends HttpServlet {
 
         // ensure the content is found
         if (downloadableContent == null) {
-            response.getWriter().println("No content...");
+            request.setAttribute("title", "Error");
+            request.setAttribute("messages", "Unable to find the specified content");
+            
+            // forward to the error page
+            final ServletContext viewerContext = servletContext.getContext("/nifi");
+            viewerContext.getRequestDispatcher("/message").include(request, response);
             return;
         }
 
@@ -81,7 +86,12 @@ public class ContentViewerController extends HttpServlet {
         try {
             displayMode = DisplayMode.valueOf(mode);
         } catch (final IllegalArgumentException iae) {
-            response.getWriter().println("Invalid display mode: " + mode);
+            request.setAttribute("title", "Error");
+            request.setAttribute("messages", "Invalid display mode: " + mode);
+            
+            // forward to the error page
+            final ServletContext viewerContext = servletContext.getContext("/nifi");
+            viewerContext.getRequestDispatcher("/message").include(request, response);
             return;
         }
         
@@ -127,62 +137,63 @@ public class ContentViewerController extends HttpServlet {
 
             // handle no viewer for content type
             if (contentViewerUri == null) {
-                final PrintWriter out = response.getWriter();
-                out.println("No viewer...");
-                out.println("identified mime type: " + mimeType);
-                out.println("filename: " + downloadableContent.getFilename());
-                out.println("type: " + downloadableContent.getType());
-
-                return;
-            }
-            
-            // create a request attribute for accessing the content
-            request.setAttribute(ViewableContent.CONTENT_REQUEST_ATTRIBUTE, new ViewableContent() {
-                @Override
-                public InputStream getContentStream() {
-                    return bis;
-                }
-
-                @Override
-                public String getContent() throws IOException {
-                    // detect the charset
-                    final CharsetDetector detector = new CharsetDetector();
-                    detector.setText(bis);
-                    detector.enableInputFilter(true);
-                    final CharsetMatch match = detector.detect();
-
-                    // ensure we were able to detect the charset
-                    if (match == null) {
-                        throw new IOException("Unable to detect character encoding.");
+                request.getRequestDispatcher("/WEB-INF/jsp/no-viewer.jsp").include(request, response);
+                
+//                final PrintWriter out = response.getWriter();
+//                out.println("No viewer...");
+//                out.println("identified mime type: " + mimeType);
+//                out.println("filename: " + downloadableContent.getFilename());
+//                out.println("type: " + downloadableContent.getType());
+//
+//                return;
+            } else {
+                // create a request attribute for accessing the content
+                request.setAttribute(ViewableContent.CONTENT_REQUEST_ATTRIBUTE, new ViewableContent() {
+                    @Override
+                    public InputStream getContentStream() {
+                        return bis;
                     }
 
-                    // convert the stream using the detected charset
-                    return IOUtils.toString(bis, match.getName());
-                }
+                    @Override
+                    public String getContent() throws IOException {
+                        // detect the charset
+                        final CharsetDetector detector = new CharsetDetector();
+                        detector.setText(bis);
+                        detector.enableInputFilter(true);
+                        final CharsetMatch match = detector.detect();
 
-                @Override
-                public ViewableContent.DisplayMode getDisplayMode() {
-                    return displayMode;
-                }
+                        // ensure we were able to detect the charset
+                        if (match == null) {
+                            throw new IOException("Unable to detect character encoding.");
+                        }
 
-                @Override
-                public String getFileName() {
-                    return downloadableContent.getFilename();
-                }
+                        // convert the stream using the detected charset
+                        return IOUtils.toString(bis, match.getName());
+                    }
 
-                @Override
-                public String getContentType() {
-                    return mimeType;
-                }
-            });
+                    @Override
+                    public ViewableContent.DisplayMode getDisplayMode() {
+                        return displayMode;
+                    }
 
-            // generate the content
-            final ServletContext viewerContext = servletContext.getContext(contentViewerUri);
-            final RequestDispatcher content = viewerContext.getRequestDispatcher("/view-content");
-            content.include(request, response);
+                    @Override
+                    public String getFileName() {
+                        return downloadableContent.getFilename();
+                    }
 
-            // remove the request attribute
-            request.removeAttribute(ViewableContent.CONTENT_REQUEST_ATTRIBUTE);
+                    @Override
+                    public String getContentType() {
+                        return mimeType;
+                    }
+                });
+
+                // generate the content
+                final ServletContext viewerContext = servletContext.getContext(contentViewerUri);
+                viewerContext.getRequestDispatcher("/view-content").include(request, response);
+
+                // remove the request attribute
+                request.removeAttribute(ViewableContent.CONTENT_REQUEST_ATTRIBUTE);
+            }
         }
 
         // generate footer

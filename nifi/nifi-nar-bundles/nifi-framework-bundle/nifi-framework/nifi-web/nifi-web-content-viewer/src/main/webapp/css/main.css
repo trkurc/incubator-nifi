@@ -45,6 +45,25 @@
 
 /* hex viewer */
 
+#hexview-content {
+    position: absolute;
+    right: 50px;
+    bottom: 50px;
+    left: 100px;
+    top: 100px;
+    border: 1px solid #aaa;
+    overflow: auto;
+    background-color: #fff;
+}
+
+#hexview-content table.hexviewerwindow_table {
+    border: none;
+    margin-left: 0;
+    background-color: #fff;
+}
+
 #hexview-content td {
     padding: 2px;
 }
+
+/* no viewer */
