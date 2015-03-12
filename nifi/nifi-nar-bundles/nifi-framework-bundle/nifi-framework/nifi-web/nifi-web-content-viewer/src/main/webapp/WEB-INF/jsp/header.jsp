@@ -87,4 +87,5 @@
     <body class="message-pane">
         <div id="view-as-label">View as</div>
         <div id="view-as" class="pointer button-normal"></div>
+        <div id="content-filename">${filename} <span id="content-type">(${contentType})</span></div>
         <div class="message-pane-message-box">

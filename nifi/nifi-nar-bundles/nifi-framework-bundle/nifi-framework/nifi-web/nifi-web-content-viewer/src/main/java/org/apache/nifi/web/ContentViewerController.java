@@ -21,8 +21,6 @@ import com.ibm.icu.text.CharsetMatch;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintWriter;
-import javax.servlet.RequestDispatcher;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
@@ -39,6 +37,7 @@ import org.apache.tika.metadata.Metadata;
 import org.apache.tika.mime.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.AccessDeniedException;
 
 /**
  *
@@ -60,12 +59,30 @@ public class ContentViewerController extends HttpServlet {
         // get the content
         final ServletContext servletContext = request.getServletContext();
         final ContentAccess contentAccess = (ContentAccess) servletContext.getAttribute("nifi-content-access");
-        final DownloadableContent downloadableContent = contentAccess.getContent(getContentRequest(request));
-
-        // ensure the content is found
-        if (downloadableContent == null) {
+        
+        // get the content
+        final DownloadableContent downloadableContent;
+        try {
+            downloadableContent = contentAccess.getContent(getContentRequest(request));
+        } catch (final ResourceNotFoundException rnfe) {
             request.setAttribute("title", "Error");
             request.setAttribute("messages", "Unable to find the specified content");
+            
+            // forward to the error page
+            final ServletContext viewerContext = servletContext.getContext("/nifi");
+            viewerContext.getRequestDispatcher("/message").include(request, response);
+            return;
+        } catch (final AccessDeniedException ade) {
+            request.setAttribute("title", "Acess Denied");
+            request.setAttribute("messages", "Unable to approve access to the specified content: " + ade.getMessage());
+            
+            // forward to the error page
+            final ServletContext viewerContext = servletContext.getContext("/nifi");
+            viewerContext.getRequestDispatcher("/message").include(request, response);
+            return;
+        } catch (final Exception e) {
+            request.setAttribute("title", "Error");
+            request.setAttribute("messages", "An unexcepted error has occurred: " + e.getMessage());
             
             // forward to the error page
             final ServletContext viewerContext = servletContext.getContext("/nifi");
@@ -95,57 +112,53 @@ public class ContentViewerController extends HttpServlet {
             return;
         }
         
-        // build the request url
+        // detect the content type
+        final DefaultDetector detector = new DefaultDetector();
+
+        // create the stream for tika to process, buffer to support reseting
+        final BufferedInputStream bis = new BufferedInputStream(downloadableContent.getContent());
+        final TikaInputStream tikaStream = TikaInputStream.get(bis);
+
+        // provide a hint based on the filename
+        final Metadata metadata = new Metadata();
+        metadata.set(Metadata.RESOURCE_NAME_KEY, downloadableContent.getFilename());
+
+        // Get mime type
+        final MediaType mediatype = detector.detect(tikaStream, metadata);
+        final String mimeType = mediatype.toString();
+        
+        // add attributes needed for the header
         final StringBuffer requestUrl = request.getRequestURL();
         request.setAttribute("requestUrl", requestUrl.toString());
         request.setAttribute("dataRef", request.getParameter("ref"));
+        request.setAttribute("filename", downloadableContent.getFilename());
+        request.setAttribute("contentType", mimeType);
         
         // generate the header
         request.getRequestDispatcher("/WEB-INF/jsp/header.jsp").include(request, response);
         
-        // remove the request url
+        // remove the attributes needed for the header
         request.removeAttribute("requestUrl");
         request.removeAttribute("dataRef");
+        request.removeAttribute("filename");
+        request.removeAttribute("contentType");
         
         // generate the markup for the content based on the display mode
         if (DisplayMode.Hex.equals(displayMode)) {
             // convert stream into the base 64 bytes
-            final byte[] bytes = IOUtils.toByteArray(downloadableContent.getContent());
+            final byte[] bytes = IOUtils.toByteArray(bis);
             final String base64 = Base64.encodeBase64String(bytes);
             
             // defer to the jsp
             request.setAttribute("content", base64);
             request.getRequestDispatcher("/WEB-INF/jsp/hexview.jsp").include(request, response);
         } else {
-            // detect the content type
-            final DefaultDetector detector = new DefaultDetector();
-
-            // create the stream for tika to process, buffer to support reseting
-            final BufferedInputStream bis = new BufferedInputStream(downloadableContent.getContent());
-            final TikaInputStream tikaStream = TikaInputStream.get(bis);
-
-            // provide a hint based on the filename
-            final Metadata metadata = new Metadata();
-            metadata.set(Metadata.RESOURCE_NAME_KEY, downloadableContent.getFilename());
-
-            // Get mime type
-            final MediaType mediatype = detector.detect(tikaStream, metadata);
-            final String mimeType = mediatype.toString();
-
             // lookup a viewer for the content
             final String contentViewerUri = servletContext.getInitParameter(mimeType);
 
             // handle no viewer for content type
             if (contentViewerUri == null) {
                 request.getRequestDispatcher("/WEB-INF/jsp/no-viewer.jsp").include(request, response);
-                
-//                final PrintWriter out = response.getWriter();
-//                out.println("No viewer...");
-//                out.println("identified mime type: " + mimeType);
-//                out.println("filename: " + downloadableContent.getFilename());
-//                out.println("type: " + downloadableContent.getType());
-//
-//                return;
             } else {
                 // create a request attribute for accessing the content
                 request.setAttribute(ViewableContent.CONTENT_REQUEST_ATTRIBUTE, new ViewableContent() {

@@ -35,6 +35,20 @@
     height: 18px;
 }
 
+#content-filename {
+    position: absolute;
+    top: 72px;
+    right: 50px;
+    line-height: 24px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+#content-type {
+    font-style: italic;
+    font-weight: normal;
+}
+
 .pointer {
     cursor: pointer;
 }
@@ -67,3 +81,17 @@
 }
 
 /* no viewer */
+
+#no-viewer {
+    position: absolute;
+    right: 50px;
+    bottom: 50px;
+    left: 100px;
+    top: 100px;
+    border: 1px solid #aaa;
+    overflow: auto;
+    background-color: #fff;
+    font-style: italic;
+    padding: 5px;
+    font-size: 13px;
+}

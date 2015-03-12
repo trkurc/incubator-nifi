@@ -15,4 +15,6 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-No viewer is registered for this content type.
+<div id="no-viewer">
+    No viewer is registered for this content type.
+</div>
