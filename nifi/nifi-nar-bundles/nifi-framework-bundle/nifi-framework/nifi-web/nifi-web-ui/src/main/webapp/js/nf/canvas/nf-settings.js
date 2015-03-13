@@ -1439,7 +1439,7 @@ nf.Settings = (function () {
                 }
             } else if (reportingTasksGrid.getColumns()[args.cell].id === 'moreDetails') {
                 if (target.hasClass('view-reporting-task')) {
-
+                    nf.ReportingTask.showDetails(reportingTask);
                 }
             }
         });

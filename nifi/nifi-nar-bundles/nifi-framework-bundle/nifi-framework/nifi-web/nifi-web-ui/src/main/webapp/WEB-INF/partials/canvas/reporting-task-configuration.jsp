@@ -23,12 +23,15 @@
                 <div class="settings-left">
                     <div class="setting">
                         <div class="setting-name">Name</div>
-                        <div class="setting-field">
+                        <div class="reporting-task-editable setting-field">
                             <input type="text" id="reporting-task-name" name="reporting-task-name"/>
                             <div class="reporting-task-enabled-container">
                                 <div id="reporting-task-enabled" class="nf-checkbox checkbox-unchecked"></div>
                                 <span> Enabled</span>
                             </div>
+                        </div>
+                        <div class="reporting-task-read-only setting-field hidden">
+                            <span id="read-only-reporting-task-name"></span>
                         </div>
                     </div>
                     <div class="setting">
@@ -64,8 +67,11 @@
                                 Scheduling strategy
                                 <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="The strategy used to schedule this reporting task."/>
                             </div>
-                            <div class="setting-field">
-                                <div type="text" id="reporting-task-scheduling-strategy-combo"></div>
+                            <div class="reporting-task-editable setting-field">
+                                <div id="reporting-task-scheduling-strategy-combo"></div>
+                            </div>
+                            <div class="reporting-task-read-only setting-field hidden">
+                                <span id="read-only-reporting-task-scheduling-strategy"></span>
                             </div>
                         </div>
                         <div class="reporting-task-scheduling-period-container">
@@ -73,9 +79,12 @@
                                 Run schedule
                                 <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="The amount of time that should elapse between task executions."/>
                             </div>
-                            <div class="setting-field">
+                            <div class="reporting-task-editable setting-field">
                                 <input type="text" id="reporting-task-timer-driven-scheduling-period" class="reporting-task-scheduling-period small-setting-input"/>
                                 <input type="text" id="reporting-task-cron-driven-scheduling-period" class="reporting-task-scheduling-period small-setting-input"/>
+                            </div>
+                            <div class="reporting-task-read-only setting-field hidden">
+                                <span id="read-only-reporting-task-scheduling-period"></span>
                             </div>
                         </div>
                         <div class="clear"></div>
