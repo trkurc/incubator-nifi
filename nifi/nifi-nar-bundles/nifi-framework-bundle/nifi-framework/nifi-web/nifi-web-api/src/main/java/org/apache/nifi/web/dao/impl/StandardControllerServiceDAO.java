@@ -124,12 +124,15 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
 
         // enable or disable as appropriate
         if (isNotNull(controllerServiceDTO.getState())) {
-            final ControllerServiceState controllerServiceState = ControllerServiceState.valueOf(controllerServiceDTO.getState());
+            final ControllerServiceState purposedControllerServiceState = ControllerServiceState.valueOf(controllerServiceDTO.getState());
 
-            if (ControllerServiceState.ENABLED.equals(controllerServiceState)) {
-                serviceProvider.enableControllerService(controllerService);
-            } else if (ControllerServiceState.DISABLED.equals(controllerServiceState)) {
-                serviceProvider.disableControllerService(controllerService);
+            // only attempt an action if it is changing
+            if (!purposedControllerServiceState.equals(controllerService.getState())) {
+                if (ControllerServiceState.ENABLED.equals(purposedControllerServiceState)) {
+                    serviceProvider.enableControllerService(controllerService);
+                } else if (ControllerServiceState.DISABLED.equals(purposedControllerServiceState)) {
+                    serviceProvider.disableControllerService(controllerService);
+                }
             }
         }
         
@@ -213,17 +216,20 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         if (isNotNull(controllerServiceDTO.getState())) {
             try {
                 // attempt to parse the service state
-                final ControllerServiceState controllerServiceState = ControllerServiceState.valueOf(controllerServiceDTO.getState());
+                final ControllerServiceState purposedControllerServiceState = ControllerServiceState.valueOf(controllerServiceDTO.getState());
                 
                 // ensure the state is valid
-                if (ControllerServiceState.ENABLING.equals(controllerServiceState) || ControllerServiceState.DISABLING.equals(controllerServiceState)) {
+                if (ControllerServiceState.ENABLING.equals(purposedControllerServiceState) || ControllerServiceState.DISABLING.equals(purposedControllerServiceState)) {
                     throw new IllegalArgumentException();
                 }
                 
-                if (ControllerServiceState.ENABLED.equals(controllerServiceState)) {
-                    controllerService.verifyCanEnable();
-                } else if (ControllerServiceState.DISABLED.equals(controllerServiceState)) {
-                    controllerService.verifyCanDisable();
+                // only attempt an action if it is changing
+                if (!purposedControllerServiceState.equals(controllerService.getState())) {
+                    if (ControllerServiceState.ENABLED.equals(purposedControllerServiceState)) {
+                        controllerService.verifyCanEnable();
+                    } else if (ControllerServiceState.DISABLED.equals(purposedControllerServiceState)) {
+                        controllerService.verifyCanDisable();
+                    }
                 }
             } catch (IllegalArgumentException iae) {
                 throw new IllegalArgumentException("Controller Service state: Value must be one of [ENABLED, DISABLED]");
