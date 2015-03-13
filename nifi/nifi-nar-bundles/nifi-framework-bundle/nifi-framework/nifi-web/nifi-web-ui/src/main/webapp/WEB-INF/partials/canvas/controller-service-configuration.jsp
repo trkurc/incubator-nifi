@@ -23,12 +23,15 @@
                 <div class="settings-left">
                     <div class="setting">
                         <div class="setting-name">Name</div>
-                        <div class="setting-field">
+                        <div class="controller-service-editable setting-field hidden">
                             <input type="text" id="controller-service-name" name="controller-service-name" class="setting-input"/>
                             <div class="controller-service-enabled-container">
                                 <div id="controller-service-enabled" class="nf-checkbox checkbox-unchecked"></div>
                                 <span> Enabled</span>
                             </div>
+                        </div>
+                        <div class="controller-service-read-only setting-field hidden">
+                            <span id="read-only-controller-service-name"></span>
                         </div>
                     </div>
                     <div class="setting">
@@ -73,8 +76,10 @@
                 <div id="controller-service-properties"></div>
             </div>
             <div id="controller-service-comments-tab-content" class="configuration-tab">
-                <textarea cols="30" rows="4" id="controller-service-comments" name="controller-service-comments" class="setting-input"></textarea>
+                <textarea cols="30" rows="4" id="controller-service-comments" name="controller-service-comments" class="controller-service-editable setting-input hidden"></textarea>
+                <span id="read-only-controller-service-comments" class="controller-service-read-only hidden"></span>
             </div>
         </div>
     </div>
 </div>
+<div id="new-controller-service-property-container"></div>

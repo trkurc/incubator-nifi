@@ -746,6 +746,33 @@ nf.Settings = (function () {
             }
             return markup;
         };
+        
+        var controllerServiceStateFormatter = function (row, cell, value, columnDef, dataContext) {
+            // determine the appropriate label
+            var icon = '', label = '';
+            if (!nf.Common.isEmpty(dataContext.validationErrors)) {
+                icon = 'invalid';
+                label = 'Invalid';
+            } else {
+                if (value === 'DISABLED') {
+                    icon = 'disabled';
+                    label = 'Disabled';
+                } else if (value === 'DISABLING') {
+                    icon = 'disabled';
+                    label = 'Disabling';
+                } else if (value === 'ENABLED') {
+                    icon = 'enabled';
+                    label = 'Enabled';
+                } else if (value === 'ENABLING') {
+                    icon = 'enabled';
+                    label = 'Enabling';
+                }
+            }
+            
+            // format the markup
+            var formattedValue = '<div class="' + icon + '" style="margin-top: 3px;"></div>';
+            return formattedValue + '<div class="status-text" style="margin-top: 2px; margin-left: 4px; float: left;">' + label + '</div>';
+        };
 
         var controllerServiceActionFormatter = function (row, cell, value, columnDef, dataContext) {
             var markup = '';
@@ -772,7 +799,7 @@ nf.Settings = (function () {
             {id: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreControllerServiceDetails, sortable: false, width: 50, maxWidth: 50},
             {id: 'name', field: 'name', name: 'Name', sortable: true, resizable: true},
             {id: 'type', field: 'type', name: 'Type', formatter: typeFormatter, sortable: true, resizable: true},
-            {id: 'state', field: 'state', name: 'State', sortable: true, resizeable: true},
+            {id: 'state', field: 'state', name: 'State', formatter: controllerServiceStateFormatter, sortable: true, resizeable: true},
             {id: 'actions', name: '&nbsp;', resizable: false, formatter: controllerServiceActionFormatter, sortable: false, width: 90, maxWidth: 90}
         ];
 
@@ -833,7 +860,7 @@ nf.Settings = (function () {
                 }
             } else if (controllerServicesGrid.getColumns()[args.cell].id === 'moreDetails') {
                 if (target.hasClass('view-controller-service')) {
-
+                    nf.ControllerService.showDetails(controllerService);
                 }
             }
         });

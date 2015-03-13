@@ -1024,9 +1024,14 @@
                     // get the tag cloud
                     var propertyTableContainer = $(this);
                     
+                    // clear any existing new property dialogs
+                    if (nf.Common.isDefinedAndNotNull(options.newPropertyDialogContainer)) {
+                        $(options.newPropertyDialogContainer).children('div.new-property-dialog').remove();
+                    }
+                    
                     // clear any current contents, remote events, and store options
                     propertyTableContainer.empty().unbind().data('options', options);
-
+                    
                     // build the component
                     var header = $('<div class="properties-header"></div>').appendTo(propertyTableContainer);
                     $('<div class="required-property-note">Required field</div>').appendTo(header);

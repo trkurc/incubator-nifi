@@ -89,3 +89,4 @@
         </div>
     </div>
 </div>
+<div id="new-reporting-task-property-container"></div>

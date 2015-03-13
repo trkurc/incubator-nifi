@@ -20,6 +20,8 @@
 nf.ControllerService = (function () {
 
     var config = {
+        edit: 'edit',
+        readOnly: 'read-only',
         serviceOnly: 'SERVICE_ONLY',
         serviceAndReferencingComponents: 'SERVICE_AND_REFERENCING_COMPONENTS'
     };
@@ -1043,7 +1045,7 @@ nf.ControllerService = (function () {
             }
 
             // initialize the conroller service configuration dialog
-            $('#controller-service-configuration').modal({
+            $('#controller-service-configuration').data('mode', config.edit).modal({
                 headerText: 'Configure Controller Service',
                 overlayBackground: false,
                 handler: {
@@ -1071,7 +1073,7 @@ nf.ControllerService = (function () {
             // initialize the property table
             $('#controller-service-properties').propertytable({
                 readOnly: false,
-                newPropertyDialogContainer: 'body'
+                newPropertyDialogContainer: '#new-controller-service-property-container'
             });
             
             // initialize the disable service dialog
@@ -1205,6 +1207,22 @@ nf.ControllerService = (function () {
          * @argument {object} controllerService      The controller service
          */
         showConfiguration: function (controllerService) {
+            var controllerServiceDialog = $('#controller-service-configuration');
+            if (controllerServiceDialog.data('mode') === config.readOnly) {
+                // update the visibility
+                $('#controller-service-configuration .controller-service-read-only').hide();
+                $('#controller-service-configuration .controller-service-editable').show();
+                
+                // initialize the property table
+                $('#controller-service-properties').propertytable({
+                    readOnly: false,
+                    newPropertyDialogContainer: '#new-controller-service-property-container'
+                });
+                
+                // update the mode
+                controllerServiceDialog.data('mode', config.edit);
+            }
+            
             // reload the service in case the property descriptors have changed
             var reloadService = $.ajax({
                 type: 'GET',
@@ -1228,7 +1246,7 @@ nf.ControllerService = (function () {
                 var controllerServiceHistory = historyResponse[0].componentHistory;
                 
                 // record the controller service details
-                $('#controller-service-configuration').data('controllerServiceDetails', controllerService);
+                controllerServiceDialog.data('controllerServiceDetails', controllerService);
 
                 // determine if the enabled checkbox is checked or not
                 var controllerServiceEnableStyle = 'checkbox-checked';
@@ -1286,7 +1304,7 @@ nf.ControllerService = (function () {
                                             renderControllerService(response.controllerService);
 
                                             // close the details panel
-                                            $('#controller-service-configuration').modal('hide');
+                                            controllerServiceDialog.modal('hide');
                                         }
                                     }).fail(handleControllerServiceConfigurationError);
                                 }
@@ -1296,7 +1314,7 @@ nf.ControllerService = (function () {
                         buttonText: 'Cancel',
                         handler: {
                             click: function () {
-                                $('#controller-service-configuration').modal('hide');
+                                controllerServiceDialog.modal('hide');
                             }
                         }
                     }];
@@ -1309,7 +1327,7 @@ nf.ControllerService = (function () {
                             click: function () {
                                 var openCustomUi = function () {
                                     // reset state and close the dialog manually to avoid hiding the faded background
-                                    $('#controller-service-configuration').modal('hide');
+                                    controllerServiceDialog.modal('hide');
 
                                     // show the custom ui
                                     nf.CustomProcessorUi.showCustomUi($('#controller-service-id').text(), controllerService.customUiUrl, true).done(function () {
@@ -1364,21 +1382,125 @@ nf.ControllerService = (function () {
                 }
 
                 // set the button model
-                $('#controller-service-configuration').modal('setButtonModel', buttons);
+                controllerServiceDialog.modal('setButtonModel', buttons);
                 
                 // load the property table
                 $('#controller-service-properties').propertytable('loadProperties', controllerService.properties, controllerService.descriptors, controllerServiceHistory.propertyHistory);
 
                 // show the details
-                $('#controller-service-configuration').modal('show');
+                controllerServiceDialog.modal('show');
 
                 // show the border if necessary
                 updateReferencingComponentsBorder(referenceContainer);
             }).fail(nf.Common.handleAjaxError);
         }, 
         
+        /**
+         * Shows the controller service details in a read only dialog.
+         * 
+         * @param {object} controllerService
+         */
         showDetails: function(controllerService) {
+            var controllerServiceDialog = $('#controller-service-configuration');
+            if (controllerServiceDialog.data('mode') === config.edit) {
+                // update the visibility
+                $('#controller-service-configuration .controller-service-read-only').show();
+                $('#controller-service-configuration .controller-service-editable').hide();
+                
+                // initialize the property table
+                $('#controller-service-properties').propertytable({
+                    readOnly: true,
+                    newPropertyDialogContainer: '#new-controller-service-property-container'
+                });
+                
+                // update the mode
+                controllerServiceDialog.data('mode', config.readOnly);
+            }
             
+            // reload the service in case the property descriptors have changed
+            var reloadService = $.ajax({
+                type: 'GET',
+                url: controllerService.uri,
+                dataType: 'json'
+            });
+            
+            // get the controller service history
+            var loadHistory = $.ajax({
+                type: 'GET',
+                url: '../nifi-api/controller/history/controller-services/' + encodeURIComponent(controllerService.id),
+                dataType: 'json'
+            });
+            
+            // once everything is loaded, show the dialog
+            $.when(reloadService, loadHistory).done(function (serviceResponse, historyResponse) {
+                // get the updated controller service
+                controllerService = serviceResponse[0].controllerService;
+                
+                // get the controller service history
+                var controllerServiceHistory = historyResponse[0].componentHistory;
+                
+                // record the controller service details
+                controllerServiceDialog.data('controllerServiceDetails', controllerService);
+                
+                // populate the controller service settings
+                $('#controller-service-id').text(controllerService['id']);
+                $('#controller-service-type').text(nf.Common.substringAfterLast(controllerService['type'], '.'));
+                $('#read-only-controller-service-name').text(controllerService['name']);
+                $('#read-only-controller-service-comments').text(controllerService['comments']);
+
+                // select the availability when appropriate
+                if (nf.Canvas.isClustered()) {
+                    if (controllerService['availability'] === 'node') {
+                        $('#availability').text('Node');
+                    } else {
+                        $('#availability').text('Cluster Manager');
+                    }
+                }
+                
+                // get the reference container
+                var referenceContainer = $('#controller-service-referencing-components');
+
+                // load the controller referencing components list
+                createReferencingComponents(referenceContainer, controllerService.referencingComponents);
+                
+                var buttons = [{
+                        buttonText: 'Ok',
+                        handler: {
+                            click: function () {
+                                // hide the dialog
+                                controllerServiceDialog.modal('hide');
+                            }
+                        }
+                    }];
+
+                // determine if we should show the advanced button
+                if (nf.Common.isDefinedAndNotNull(nf.CustomProcessorUi) && nf.Common.isDefinedAndNotNull(controllerService.customUiUrl) && controllerService.customUiUrl !== '') {
+                    buttons.push({
+                        buttonText: 'Advanced',
+                        handler: {
+                            click: function () {
+                                // reset state and close the dialog manually to avoid hiding the faded background
+                                controllerServiceDialog.modal('hide');
+
+                                // show the custom ui
+                                nf.CustomProcessorUi.showCustomUi(controllerService.id, controllerService.customUiUrl, false);
+                            }
+                        }
+                    });
+                }
+                
+                // show the dialog
+                controllerServiceDialog.modal('setButtonModel', buttons).modal('show');
+                
+                // load the property table
+                $('#controller-service-properties').propertytable('loadProperties', controllerService.properties, controllerService.descriptors, controllerServiceHistory.propertyHistory);
+                
+                // show the details
+                controllerServiceDialog.modal('show');
+
+                // show the border if necessary
+                updateReferencingComponentsBorder(referenceContainer);
+            });
         },
         
         /**

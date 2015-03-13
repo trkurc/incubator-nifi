@@ -467,7 +467,7 @@ nf.ProcessorConfiguration = (function () {
             // initialize the property table
             $('#processor-properties').propertytable({
                 readOnly: false,
-                newPropertyDialogContainer: 'body'
+                newPropertyDialogContainer: '#new-processor-property-container'
             });
         },
         

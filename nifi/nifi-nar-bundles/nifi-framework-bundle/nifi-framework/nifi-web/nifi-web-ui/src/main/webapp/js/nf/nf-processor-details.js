@@ -199,7 +199,7 @@ nf.ProcessorDetails = (function () {
                 url: '../nifi-api/controller/history/processors/' + encodeURIComponent(processorId),
                 dataType: 'json'
             }).done(function (response) {
-                var processorHistory = response.processorHistory;
+                var processorHistory = response.componentHistory;
 
                 // record the processor history
                 $('#processor-details').data('processorHistory', processorHistory);
@@ -210,7 +210,7 @@ nf.ProcessorDetails = (function () {
                 var processorResponse = processorResponse[0];
                 var processor = processorResponse.processor;
                 var historyResponse = historyResponse[0];
-                var history = historyResponse.processorHistory;
+                var history = historyResponse.componentHistory;
 
                 // load the properties
                 $('#read-only-processor-properties').propertytable('loadProperties', processor.config.properties, processor.config.descriptors, history.propertyHistory);
