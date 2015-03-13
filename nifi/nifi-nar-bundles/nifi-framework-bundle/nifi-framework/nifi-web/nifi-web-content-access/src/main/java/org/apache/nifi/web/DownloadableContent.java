@@ -19,7 +19,7 @@ package org.apache.nifi.web;
 import java.io.InputStream;
 
 /**
- *
+ * Represents content that can be downloaded.
  */
 public final class DownloadableContent {
 
@@ -33,14 +33,29 @@ public final class DownloadableContent {
         this.content = content;
     }
 
+    /**
+     * The filename of the content.
+     * 
+     * @return 
+     */
     public String getFilename() {
         return filename;
     }
 
+    /**
+     * The content type of the content.
+     * 
+     * @return 
+     */
     public String getType() {
         return type;
     }
 
+    /**
+     * The content stream.
+     * 
+     * @return 
+     */
     public InputStream getContent() {
         return content;
     }

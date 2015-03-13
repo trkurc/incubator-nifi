@@ -17,6 +17,7 @@
 package org.apache.nifi.web;
 
 /**
+ * Provides access to content within NiFi.
  * 
  * @author unattributed
  */

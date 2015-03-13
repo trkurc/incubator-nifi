@@ -17,11 +17,35 @@
 package org.apache.nifi.web;
 
 /**
- *
+ * A request for content.
  */
 public interface ContentRequestContext {
+    
+    /**
+     * The URI to the data.
+     * 
+     * @return 
+     */
     String getDataUri();
+    
+    /**
+     * If clustered, this is the id of the node the data resides on.
+     * 
+     * @return 
+     */
     String getClusterNodeId();
+    
+    /**
+     * The client id for the user making the request.
+     * 
+     * @return 
+     */
     String getClientId();
+    
+    /**
+     * The proxy chain for the current request, if applicable.
+     * 
+     * @return 
+     */
     String getProxiedEntitiesChain();
 }
