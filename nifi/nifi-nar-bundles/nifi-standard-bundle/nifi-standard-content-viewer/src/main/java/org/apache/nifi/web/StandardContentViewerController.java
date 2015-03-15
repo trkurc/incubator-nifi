@@ -53,7 +53,7 @@ public class StandardContentViewerController extends HttpServlet {
         final ViewableContent content = (ViewableContent) request.getAttribute(ViewableContent.CONTENT_REQUEST_ATTRIBUTE);
         
         // handle json/xml
-        if ("application/json".equals(content.getContentType()) || "application/xml".equals(content.getContentType())) {
+        if ("application/json".equals(content.getContentType()) || "application/xml".equals(content.getContentType()) || "text/plain".equals(content.getContentType())) {
             final String formatted;
             
             // leave the content alone if specified
@@ -61,10 +61,12 @@ public class StandardContentViewerController extends HttpServlet {
                 formatted = content.getContent();
             } else {
                 if ("application/json".equals(content.getContentType())) {
+                    // format json
                     final ObjectMapper mapper = new ObjectMapper();
                     final Object objectJson = mapper.readValue(content.getContent(), Object.class);
                     formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(objectJson);
-                } else {
+                } else if ("application/xml".equals(content.getContentType())) {
+                    // format xml
                     final StringWriter writer = new StringWriter();
 
                     try {
@@ -83,6 +85,9 @@ public class StandardContentViewerController extends HttpServlet {
 
                     // get the transformed xml
                     formatted = writer.toString();
+                } else {
+                    // leave plain text alone when formatting
+                    formatted = content.getContent();
                 }
             }
             
