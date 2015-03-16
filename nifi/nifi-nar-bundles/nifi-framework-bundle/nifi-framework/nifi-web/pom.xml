@@ -58,7 +58,7 @@
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-web-content-viewer</artifactId>
                 <type>war</type>
-                <version>0.0.2-incubating-SNAPSHOT</version>
+                <version>0.0.3-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
