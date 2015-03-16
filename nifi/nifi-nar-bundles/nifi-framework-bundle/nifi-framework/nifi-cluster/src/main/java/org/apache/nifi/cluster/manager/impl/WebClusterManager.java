@@ -912,11 +912,11 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         try {
             final Document document = parse(serialized);
 
-            final NodeList tasksNodes = document.getElementsByTagName("tasks");
+            final NodeList tasksNodes = document.getElementsByTagName("reportingTasks");
             final Element tasksElement = (Element) tasksNodes.item(0);
 
             //optional properties for all ReportingTasks
-            for (final Element taskElement : DomUtils.getChildElementsByTagName(tasksElement, "task")) {
+            for (final Element taskElement : DomUtils.getChildElementsByTagName(tasksElement, "reportingTask")) {
                 //add global properties common to all tasks
                 Map<String, String> properties = new HashMap<>();
 
