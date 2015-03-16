@@ -533,7 +533,7 @@ nf.Settings = (function () {
                     if (nf.Common.isBlank(controllerServiceType.description)) {
                         $('#controller-service-type-description').attr('title', '').html('<span class="unset">No description specified</span>');
                     } else {
-                        $('#controller-service-type-description').text(controllerServiceType.description).ellipsis();
+                        $('#controller-service-type-description').html(controllerServiceType.description).ellipsis();
                     }
 
                     // populate the dom
@@ -1194,7 +1194,7 @@ nf.Settings = (function () {
             if (nf.Common.isBlank(reportingTaskType.description)) {
                 $('#reporting-task-type-description').attr('title', '').html('<span class="unset">No description specified</span>');
             } else {
-                $('#reporting-task-type-description').text(reportingTaskType.description).ellipsis();
+                $('#reporting-task-type-description').html(reportingTaskType.description).ellipsis();
             }
 
             // populate the dom
