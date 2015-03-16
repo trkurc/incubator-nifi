@@ -46,7 +46,6 @@
         var isEmpty;
         var input;
 
-
         this.init = function () {
             var container = $('body');
 
@@ -804,7 +803,7 @@
             enableTextSelectionOnCells: true,
             enableCellNavigation: true,
             enableColumnReorder: false,
-            editable: true,
+            editable: options.readOnly !== true,
             enableAddRow: false,
             autoEdit: false
         };
@@ -1024,11 +1023,6 @@
                     // get the tag cloud
                     var propertyTableContainer = $(this);
                     
-                    // clear any existing new property dialogs
-                    if (nf.Common.isDefinedAndNotNull(options.newPropertyDialogContainer)) {
-                        $(options.newPropertyDialogContainer).children('div.new-property-dialog').remove();
-                    }
-                    
                     // clear any current contents, remote events, and store options
                     propertyTableContainer.empty().unbind().data('options', options);
                     
@@ -1040,7 +1034,7 @@
                     var table = $('<div class="property-table"></div>').appendTo(propertyTableContainer);
                     
                     // optionally add a add new property button
-                    if (options.readOnly !== true) {
+                    if (options.readOnly !== true && nf.Common.isDefinedAndNotNull(options.newPropertyDialogContainer)) {
                         // build the new property dialog
                         var newPropertyDialogMarkup = '<div class="new-property-dialog dialog">' +
                             '<div>' +
@@ -1219,7 +1213,10 @@
                 if (options.readOnly === true) {
                     removeAllPropertyDetailDialogs();
                 } else {
-                    $(this).find('div.new-property-dialog').hide();
+                    // clear any existing new property dialogs
+                    if (nf.Common.isDefinedAndNotNull(options.newPropertyDialogContainer)) {
+                        $(options.newPropertyDialogContainer).children('div.new-property-dialog').remove();
+                    }
                 }
                 
                 // clean up data

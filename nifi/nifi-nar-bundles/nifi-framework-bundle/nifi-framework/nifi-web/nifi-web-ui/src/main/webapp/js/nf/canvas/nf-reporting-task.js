@@ -289,7 +289,7 @@ nf.ReportingTask = (function () {
                 $('#reporting-task-configuration .reporting-task-editable').show();
                 
                 // initialize the property table
-                $('#reporting-task-properties').propertytable({
+                $('#reporting-task-properties').propertytable('clear').propertytable({
                     readOnly: false,
                     newPropertyDialogContainer: '#new-reporting-task-property-container'
                 });
@@ -511,9 +511,8 @@ nf.ReportingTask = (function () {
                 $('#reporting-task-configuration .reporting-task-editable').hide();
                 
                 // initialize the property table
-                $('#reporting-task-properties').propertytable({
-                    readOnly: true,
-                    newPropertyDialogContainer: '#new-reporting-task-property-container'
+                $('#reporting-task-properties').propertytable('clear').propertytable({
+                    readOnly: true
                 });
                 
                 // update the mode

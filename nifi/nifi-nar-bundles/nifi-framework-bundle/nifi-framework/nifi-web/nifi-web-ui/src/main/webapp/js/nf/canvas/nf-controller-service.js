@@ -1214,7 +1214,7 @@ nf.ControllerService = (function () {
                 $('#controller-service-configuration .controller-service-editable').show();
                 
                 // initialize the property table
-                $('#controller-service-properties').propertytable({
+                $('#controller-service-properties').propertytable('clear').propertytable({
                     readOnly: false,
                     newPropertyDialogContainer: '#new-controller-service-property-container'
                 });
@@ -1408,9 +1408,8 @@ nf.ControllerService = (function () {
                 $('#controller-service-configuration .controller-service-editable').hide();
                 
                 // initialize the property table
-                $('#controller-service-properties').propertytable({
-                    readOnly: true,
-                    newPropertyDialogContainer: '#new-controller-service-property-container'
+                $('#controller-service-properties').propertytable('clear').propertytable({
+                    readOnly: true
                 });
                 
                 // update the mode
