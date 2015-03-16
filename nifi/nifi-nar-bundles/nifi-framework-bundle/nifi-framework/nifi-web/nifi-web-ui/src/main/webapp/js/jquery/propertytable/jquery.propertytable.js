@@ -234,7 +234,7 @@
         // initialize the custom long text editor
         this.init();
     };
-    
+
     // nfel editor
     var nfelEditor = function (args) {
         var scope = this;
@@ -428,7 +428,7 @@
         // initialize the custom long nfel editor
         this.init();
     };
-    
+
     // combo editor
     var comboEditor = function (args) {
         var scope = this;
@@ -680,7 +680,7 @@
                     if (editor !== null) {
                         editor.nfeditor('destroy');
                     }
-                    
+
                     // clean up the rest
                     wrapper.hide().remove();
                 });
@@ -782,7 +782,7 @@
             {id: 'property', field: 'displayName', name: 'Property', sortable: false, resizable: true, rerenderOnResize: true, formatter: nameFormatter},
             {id: 'value', field: 'value', name: 'Value', sortable: false, resizable: true, cssClass: 'pointer', rerenderOnResize: true, formatter: valueFormatter}
         ];
-        
+
         if (options.readOnly !== true) {
             // custom formatter for the actions column
             var actionFormatter = function (row, cell, value, columnDef, dataContext) {
@@ -797,7 +797,7 @@
             };
             propertyColumns.push({id: "actions", name: "&nbsp;", minWidth: 20, width: 20, formatter: actionFormatter});
         }
-        
+
         var propertyConfigurationOptions = {
             forceFitColumns: true,
             enableTextSelectionOnCells: true,
@@ -881,7 +881,7 @@
 
                     // refresh the table
                     propertyData.updateItem(property.id, property);
-                    
+
                     // prevents standard edit logic
                     e.stopImmediatePropagation();
                 }
@@ -923,7 +923,7 @@
             }
         });
     };
-    
+
     var saveRow = function (table) {
         // get the property grid to commit the current edit
         var propertyGrid = table.data('gridInstance');
@@ -932,7 +932,7 @@
             editController.commitCurrentEdit();
         }
     };
-    
+
     /**
      * Performs the filtering.
      * 
@@ -943,7 +943,7 @@
     var filter = function (item, args) {
         return item.hidden === false;
     };
-    
+
     /**
      * Loads the specified properties.
      * 
@@ -958,7 +958,7 @@
             'descriptors': descriptors,
             'history': history
         });
-        
+
         // get the grid
         var propertyGrid = table.data('gridInstance');
         var propertyData = propertyGrid.getData();
@@ -1009,8 +1009,36 @@
         }
     };
 
+    /**
+     * Clears the property table container.
+     * 
+     * @param {jQuery} propertyTableContainer
+     */
+    var clear = function (propertyTableContainer) {
+        var options = propertyTableContainer.data('options');
+        if (options.readOnly === true) {
+            removeAllPropertyDetailDialogs();
+        } else {
+            // clear any existing new property dialogs
+            if (nf.Common.isDefinedAndNotNull(options.newPropertyDialogContainer)) {
+                $(options.newPropertyDialogContainer).children('div.new-property-dialog').hide();
+            }
+        }
+
+        // clean up data
+        var table = propertyTableContainer.find('div.property-table');
+        table.removeData('descriptors history');
+
+        // clean up any tooltips that may have been generated
+        nf.Common.cleanUpTooltips(table, 'img.icon-info');
+
+        // clear the data in the grid
+        var propertyGrid = table.data('gridInstance');
+        var propertyData = propertyGrid.getData();
+        propertyData.setItems([]);
+    };
+
     var methods = {
-        
         /**
          * Initializes the tag cloud.
          * 
@@ -1022,42 +1050,42 @@
                 if (nf.Common.isDefinedAndNotNull(options)) {
                     // get the tag cloud
                     var propertyTableContainer = $(this);
-                    
+
                     // clear any current contents, remote events, and store options
                     propertyTableContainer.empty().unbind().data('options', options);
-                    
+
                     // build the component
                     var header = $('<div class="properties-header"></div>').appendTo(propertyTableContainer);
                     $('<div class="required-property-note">Required field</div>').appendTo(header);
-                    
+
                     // build the table
                     var table = $('<div class="property-table"></div>').appendTo(propertyTableContainer);
-                    
+
                     // optionally add a add new property button
                     if (options.readOnly !== true && nf.Common.isDefinedAndNotNull(options.newPropertyDialogContainer)) {
                         // build the new property dialog
                         var newPropertyDialogMarkup = '<div class="new-property-dialog dialog">' +
-                            '<div>' +
+                                '<div>' +
                                 '<div class="setting-name">Property name</div>' +
                                 '<div class="setting-field new-property-name-container">' +
-                                    '<input class="new-property-name" type="text"/>' +
+                                '<input class="new-property-name" type="text"/>' +
                                 '</div>' +
                                 '<div class="setting-name" style="margin-top: 36px;">Property value</div>' +
                                 '<div class="setting-field">' +
-                                    '<div class="new-property-value"></div>' +
+                                '<div class="new-property-value"></div>' +
                                 '</div>' +
-                            '</div>' +
-                            '<div class="new-property-button-container">' +
+                                '</div>' +
+                                '<div class="new-property-button-container">' +
                                 '<div class="new-property-ok button button-normal">Ok</div>' +
                                 '<div class="new-property-cancel button button-normal">Cancel</div>' +
                                 '<div class="clear"></div>' +
-                            '</div>' +
-                        '</div>';
+                                '</div>' +
+                                '</div>';
 
                         var newPropertyDialog = $(newPropertyDialogMarkup).appendTo(options.newPropertyDialogContainer);
                         var newPropertyNameField = newPropertyDialog.find('input.new-property-name');
                         var newPropertyValueField = newPropertyDialog.find('div.new-property-value');
-                        
+
                         var add = function () {
                             var propertyName = $.trim(newPropertyNameField.val());
                             var propertyValue = newPropertyValueField.nfeditor('getValue');
@@ -1090,7 +1118,7 @@
                         var cancel = function () {
                             newPropertyDialog.hide();
                         };
-                        
+
                         // create the editor
                         newPropertyValueField.addClass(editorClass).nfeditor({
                             languageId: languageId,
@@ -1118,10 +1146,10 @@
                                 cancel();
                             }
                         });
-                        
+
                         // build the control to open the new property dialog
                         var addProperty = $('<div class="add-property"></div>').appendTo(header);
-                        $('<div class="add-property-icon add-icon-bg"></div>').on('click', function() {
+                        $('<div class="add-property-icon add-icon-bg"></div>').on('click', function () {
                             // close all fields currently being edited
                             saveRow(table);
 
@@ -1146,7 +1174,7 @@
                         $('<div class="add-property-text">New property</div>').appendTo(addProperty);
                     }
                     $('<div class="clear"></div>').appendTo(header);
-                    
+
                     // initializes the properties table
                     initPropertiesTable(table, options);
                 }
@@ -1205,31 +1233,29 @@
         },
         
         /**
+         * Destroys the property table.
+         */
+        destroy: function () {
+            return this.each(function () {
+                var propertyTableContainer = $(this);
+                var options = propertyTableContainer.data('options');
+                
+                // clear the property table container
+                clear(propertyTableContainer);
+                
+                // clear any existing new property dialogs
+                if (nf.Common.isDefinedAndNotNull(options.newPropertyDialogContainer)) {
+                    $(options.newPropertyDialogContainer).children('div.new-property-dialog').remove();
+                }
+            });
+        },
+        
+        /**
          * Clears the property table.
          */
         clear: function () {
             return this.each(function () {
-                var options = $(this).data('options');
-                if (options.readOnly === true) {
-                    removeAllPropertyDetailDialogs();
-                } else {
-                    // clear any existing new property dialogs
-                    if (nf.Common.isDefinedAndNotNull(options.newPropertyDialogContainer)) {
-                        $(options.newPropertyDialogContainer).children('div.new-property-dialog').remove();
-                    }
-                }
-                
-                // clean up data
-                var table = $(this).find('div.property-table');
-                table.removeData('descriptors history');
-            
-                // clean up any tooltips that may have been generated
-                nf.Common.cleanUpTooltips(table, 'img.icon-info');
-
-                // clear the data in the grid
-                var propertyGrid = table.data('gridInstance');
-                var propertyData = propertyGrid.getData();
-                propertyData.setItems([]);
+                clear($(this));
             });
         },
         
@@ -1238,7 +1264,7 @@
          */
         isSaveRequired: function () {
             var isSaveRequired = false;
-            
+
             this.each(function () {
                 // get the property grid
                 var table = $(this).find('div.property-table');
@@ -1252,10 +1278,10 @@
                         return false;
                     }
                 });
-                
+
                 return false;
             });
-            
+
             return isSaveRequired;
         },
         
@@ -1278,7 +1304,7 @@
                         properties[this.property] = this.value;
                     }
                 });
-                
+
                 return false;
             });
 
