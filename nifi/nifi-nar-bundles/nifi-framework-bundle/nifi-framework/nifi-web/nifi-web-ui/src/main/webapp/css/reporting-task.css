@@ -94,17 +94,13 @@ div.availability-setting {
     width: 140px;
 }
 
-div.reporting-task-scheduling-strategy-container, div.reporting-task-scheduling-period-container {
-    float: left;
-    width: 175px;
-}
-
 #reporting-task-scheduling-strategy-combo {
-    width: 145px;
+    width: 150px;
     height: 18px;
     line-height: 18px;
 }
 
 input.reporting-task-scheduling-period {
     font-size: 11px !important;
+    width: 150px;
 }

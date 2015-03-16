@@ -1378,7 +1378,7 @@ nf.Settings = (function () {
             {id: 'moreDetails', field: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreReportingTaskDetails, sortable: true, width: 50, maxWidth: 50},
             {id: 'name', field: 'name', name: 'Name', sortable: true, resizable: true},
             {id: 'type', field: 'type', name: 'Type', sortable: true, resizable: true, formatter: typeFormatter},
-            {id: 'state', field: 'state', name: 'State', sortable: true, resizeable: true, formatter: reportingTaskRunStatusFormatter},
+            {id: 'state', field: 'state', name: 'Run Status', sortable: true, resizeable: true, formatter: reportingTaskRunStatusFormatter},
             {id: 'actions', name: '&nbsp;', resizable: false, formatter: reportingTaskActionFormatter, sortable: false, width: 90, maxWidth: 90}
         ];
 
