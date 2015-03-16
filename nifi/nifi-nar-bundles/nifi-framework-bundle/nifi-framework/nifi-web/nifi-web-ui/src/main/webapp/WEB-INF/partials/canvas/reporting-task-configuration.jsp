@@ -53,7 +53,7 @@
                                 <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="Where this controller service is available."/>
                             </div>
                             <div class="setting-field">
-                                <div id="availability"></div>
+                                <div id="reporting-task-availability"></div>
                             </div>
                         </div>
                         <div class="clear"></div>

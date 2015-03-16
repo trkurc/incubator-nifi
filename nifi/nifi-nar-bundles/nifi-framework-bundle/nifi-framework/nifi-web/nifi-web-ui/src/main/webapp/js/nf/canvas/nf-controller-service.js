@@ -1264,9 +1264,9 @@ nf.ControllerService = (function () {
                 // select the availability when appropriate
                 if (nf.Canvas.isClustered()) {
                     if (controllerService['availability'] === 'node') {
-                        $('#availability').text('Node');
+                        $('#controller-service-availability').text('Node');
                     } else {
-                        $('#availability').text('Cluster Manager');
+                        $('#controller-service-availability').text('Cluster Manager');
                     }
                 }
                 
@@ -1451,9 +1451,9 @@ nf.ControllerService = (function () {
                 // select the availability when appropriate
                 if (nf.Canvas.isClustered()) {
                     if (controllerService['availability'] === 'node') {
-                        $('#availability').text('Node');
+                        $('#controller-service-availability').text('Node');
                     } else {
-                        $('#availability').text('Cluster Manager');
+                        $('#controller-service-availability').text('Cluster Manager');
                     }
                 }
                 

@@ -338,9 +338,9 @@ nf.ReportingTask = (function () {
                 // select the availability when appropriate
                 if (nf.Canvas.isClustered()) {
                     if (reportingTask['availability'] === 'node') {
-                        $('#availability').text('Node');
+                        $('#reporting-task-availability').text('Node');
                     } else {
-                        $('#availability').text('Cluster Manager');
+                        $('#reporting-task-availability').text('Cluster Manager');
                     }
                 }
                 
@@ -550,9 +550,9 @@ nf.ReportingTask = (function () {
                 // select the availability when appropriate
                 if (nf.Canvas.isClustered()) {
                     if (reportingTask['availability'] === 'node') {
-                        $('#availability').text('Node');
+                        $('#reporting-task-availability').text('Node');
                     } else {
-                        $('#availability').text('Cluster Manager');
+                        $('#reporting-task-availability').text('Cluster Manager');
                     }
                 }
                 
@@ -596,7 +596,7 @@ nf.ReportingTask = (function () {
                 reportingTaskDialog.modal('setButtonModel', buttons).modal('show');
                 
                 // load the property table
-                $('#controller-service-properties').propertytable('loadProperties', reportingTask.properties, reportingTask.descriptors, reportingTaskHistory.propertyHistory);
+                $('#reporting-task-properties').propertytable('loadProperties', reportingTask.properties, reportingTask.descriptors, reportingTaskHistory.propertyHistory);
                 
                 // show the details
                 reportingTaskDialog.modal('show');

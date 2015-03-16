@@ -53,7 +53,7 @@
                                 <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="Where this controller service is available."/>
                             </div>
                             <div class="setting-field">
-                                <div id="availability"></div>
+                                <div id="controller-service-availability"></div>
                             </div>
                         </div>
                         <div class="clear"></div>
@@ -76,7 +76,7 @@
                 <div id="controller-service-properties"></div>
             </div>
             <div id="controller-service-comments-tab-content" class="configuration-tab">
-                <textarea cols="30" rows="4" id="controller-service-comments" name="controller-service-comments" class="controller-service-editable setting-input hidden"></textarea>
+                <textarea cols="30" rows="4" id="controller-service-comments" name="controller-service-comments" class="controller-service-editable setting-input"></textarea>
                 <span id="read-only-controller-service-comments" class="controller-service-read-only hidden"></span>
             </div>
         </div>
