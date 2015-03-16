@@ -74,7 +74,6 @@ public class StandardNiFiContentAccess implements ContentAccess {
             
             // set the headers
             final Map<String, String> headers = new HashMap<>();
-            headers.put("Accept", "application/json,application/xml");
             if (StringUtils.isNotBlank(request.getProxiedEntitiesChain())) {
                 headers.put("X-ProxiedEntitiesChain", request.getProxiedEntitiesChain());
             }
@@ -106,10 +105,17 @@ public class StandardNiFiContentAccess implements ContentAccess {
             final ClientResponse clientResponse = nodeResponse.getClientResponse();
             final MultivaluedMap<String, String> responseHeaders = clientResponse.getHeaders();
             
+            // get the file name
+            final String contentDisposition = responseHeaders.getFirst("Content-Disposition");
+            final String filename = StringUtils.substringAfterLast(contentDisposition, "filename=");
+            
+            // get the content type
+            final String contentType = responseHeaders.getFirst("Content-Type");
+            
             // create the downloadable content
-            return new DownloadableContent(null, null, clientResponse.getEntityInputStream());
+            return new DownloadableContent(filename, contentType, clientResponse.getEntityInputStream());
         } else {
-//            http://localhost:8080/nifi-api/controller/provenance/events/1/content/input
+            // example URI: http://localhost:8080/nifi-api/controller/provenance/events/1/content/input
             final String eventDetails = StringUtils.substringAfterLast(request.getDataUri(), "events/");
             final String rawEventId = StringUtils.substringBefore(eventDetails, "/content/");
             final String rawDirection = StringUtils.substringAfterLast(eventDetails, "/content/");

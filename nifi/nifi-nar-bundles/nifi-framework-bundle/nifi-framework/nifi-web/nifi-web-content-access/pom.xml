@@ -22,6 +22,4 @@
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-web-content-access</artifactId>
-    <dependencies>
-    </dependencies>
 </project>

@@ -30,6 +30,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.web.ViewableContent.DisplayMode;
 import org.apache.tika.detect.DefaultDetector;
 import org.apache.tika.io.TikaInputStream;
@@ -40,7 +41,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
 
 /**
- *
+ * Controller servlet for viewing content. This is responsible for generating
+ * the markup for the header and footer of the page. Included in that is the 
+ * combo that allows the user to choose how they wait to view the data
+ * (original, formatted, hex). If a data viewer is registered for the detected
+ * content type, it will include the markup it generates in the response.
  */
 @WebServlet(name = "ContentViewerController", urlPatterns = {"/viewer"})
 public class ContentViewerController extends HttpServlet {
@@ -48,7 +53,8 @@ public class ContentViewerController extends HttpServlet {
     private static final Logger logger = LoggerFactory.getLogger(ContentViewerController.class);
     
     /**
-     *
+     * Gets the content and defers to registered viewers to generate the markup.
+     * 
      * @param request servlet request
      * @param response servlet response
      * @throws ServletException if a servlet-specific error occurs
@@ -112,11 +118,13 @@ public class ContentViewerController extends HttpServlet {
             return;
         }
         
+        // buffer the content to support reseting in case we need to detect the content type or char encoding
+        final BufferedInputStream bis = new BufferedInputStream(downloadableContent.getContent());
+        
         // detect the content type
         final DefaultDetector detector = new DefaultDetector();
 
-        // create the stream for tika to process, buffer to support reseting
-        final BufferedInputStream bis = new BufferedInputStream(downloadableContent.getContent());
+        // create the stream for tika to process, buffered to support reseting
         final TikaInputStream tikaStream = TikaInputStream.get(bis);
 
         // provide a hint based on the filename
@@ -227,7 +235,8 @@ public class ContentViewerController extends HttpServlet {
 
             @Override
             public String getClusterNodeId() {
-                return request.getParameter("clusterNodeId");
+                final String ref = request.getParameter("ref");
+                return StringUtils.substringAfterLast(ref, "clusterNodeId=");
             }
 
             @Override
