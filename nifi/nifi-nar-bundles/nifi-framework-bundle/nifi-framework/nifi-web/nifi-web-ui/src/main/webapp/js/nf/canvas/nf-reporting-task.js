@@ -330,8 +330,8 @@ nf.ReportingTask = (function () {
                 }
                 
                 // populate the reporting task settings
-                $('#reporting-task-id').text(reportingTask['id']);
-                $('#reporting-task-type').text(nf.Common.substringAfterLast(reportingTask['type'], '.'));
+                nf.Common.populateField('reporting-task-id', reportingTask['id']);
+                nf.Common.populateField('reporting-task-type', nf.Common.substringAfterLast(reportingTask['type'], '.'));
                 $('#reporting-task-name').val(reportingTask['name']);
                 $('#reporting-task-enabled').removeClass('checkbox-unchecked checkbox-checked').addClass(reportingTaskEnableStyle);
 
@@ -543,9 +543,9 @@ nf.ReportingTask = (function () {
                 var reportingTaskHistory = historyResponse[0].componentHistory;
                 
                 // populate the reporting task settings
-                $('#reporting-task-id').text(reportingTask['id']);
-                $('#reporting-task-type').text(nf.Common.substringAfterLast(reportingTask['type'], '.'));
-                $('#read-only-reporting-task-name').text(reportingTask['name']);
+                nf.Common.populateField('reporting-task-id', reportingTask['id']);
+                nf.Common.populateField('reporting-task-type', nf.Common.substringAfterLast(reportingTask['type'], '.'));
+                nf.Common.populateField('read-only-reporting-task-name', reportingTask['name']);
 
                 // select the availability when appropriate
                 if (nf.Canvas.isClustered()) {
@@ -556,9 +556,15 @@ nf.ReportingTask = (function () {
                     }
                 }
                 
-                // scheduling
-                $('#read-only-reporting-task-scheduling-strategy').text(reportingTask['schedulingStrategy']);
-                $('#read-only-reporting-task-scheduling-period').text(reportingTask['schedulingPeriod']);
+                // make the scheduling strategy human readable
+                var schedulingStrategy = reportingTask['schedulingStrategy'];
+                if (schedulingStrategy === 'CRON_DRIVEN') {
+                    schedulingStrategy = 'CRON driven';
+                } else {
+                    schedulingStrategy = "Timer driven";
+                }
+                nf.Common.populateField('read-only-reporting-task-scheduling-strategy', schedulingStrategy);
+                nf.Common.populateField('read-only-reporting-task-scheduling-period', reportingTask['schedulingPeriod']);
                 
                 var buttons = [{
                         buttonText: 'Ok',
