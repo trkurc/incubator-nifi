@@ -1183,7 +1183,7 @@ nf.ControllerService = (function () {
                         
                         // reset dialog
                         enableDialog.modal('setButtonModel', [{
-                            buttonText: 'Disable',
+                            buttonText: 'Enable',
                             handler: {
                                 click: enableHandler
                             }
