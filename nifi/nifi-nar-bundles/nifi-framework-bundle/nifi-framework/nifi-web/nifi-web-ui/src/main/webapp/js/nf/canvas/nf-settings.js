@@ -199,11 +199,14 @@ nf.Settings = (function () {
      * Hides the selected controller service.
      */
     var clearSelectedControllerService = function () {
+        if (nf.Canvas.isClustered()) {
+            $('#controller-service-availability-combo').combo('setSelectedOption', {
+                value: config.node
+            });
+        }
+        
         $('#controller-service-type-description').text('');
         $('#controller-service-type-name').text('');
-        $('#controller-service-availability-combo').combo('setSelectedOption', {
-            value: config.node
-        });
         $('#selected-controller-service-name').text('');
         $('#selected-controller-service-type').text('');
         $('#controller-service-description-container').hide();
@@ -660,20 +663,25 @@ nf.Settings = (function () {
                         }
                     }
                 }],
-            close: function () {
-                // clear the selected row
-                clearSelectedControllerService();
+            handler: {
+                close: function () {
+                    // clear the selected row
+                    clearSelectedControllerService();
 
-                // unselect any current selection
-                var processTypesGrid = $('#controller-service-types-table').data('gridInstance');
-                processTypesGrid.setSelectedRows([]);
-                processTypesGrid.resetActiveCell();
+                    // clear any filter strings
+                    $('#controller-service-type-filter').addClass(config.styles.filterList).val(config.filterText);
 
-                // clear any filter strings
-                $('#controller-service-type-filter').addClass(config.styles.filterList).val(config.filterText);
+                    // clear the tagcloud
+                    $('#controller-service-tag-cloud').tagcloud('clearSelectedTags');
 
-                // clear the tagcloud
-                $('#controller-service-tag-cloud').tagcloud('clearSelectedTags');
+                    // reset the filter
+                    applyControllerServiceTypeFilter();
+
+                    // unselect any current selection
+                    var processTypesGrid = $('#controller-service-types-table').data('gridInstance');
+                    processTypesGrid.setSelectedRows([]);
+                    processTypesGrid.resetActiveCell();
+                }
             }
         }).draggable({
             containment: 'parent',
@@ -1009,11 +1017,14 @@ nf.Settings = (function () {
      * Hides the selected reporting task.
      */
     var clearSelectedReportingTask = function () {
+        if (nf.Canvas.isClustered()) {
+            $('#reporting-task-availability-combo').combo('setSelectedOption', {
+                value: config.node
+            });
+        }
+        
         $('#reporting-task-type-description').text('');
         $('#reporting-task-type-name').text('');
-        $('#reporting-task-availability-combo').combo('setSelectedOption', {
-            value: config.node
-        });
         $('#selected-reporting-task-name').text('');
         $('#selected-reporting-task-type').text('');
         $('#reporting-task-description-container').hide();
@@ -1187,23 +1198,25 @@ nf.Settings = (function () {
         reportingTaskTypesGrid.registerPlugin(new Slick.AutoTooltips());
         reportingTaskTypesGrid.setSortColumn('type', true);
         reportingTaskTypesGrid.onSelectedRowsChanged.subscribe(function (e, args) {
-            var reportingTaskTypeIndex = args.rows[0];
-            var reportingTaskType = reportingTaskTypesGrid.getDataItem(reportingTaskTypeIndex);
+            if ($.isArray(args.rows) && args.rows.length === 1) {
+                var reportingTaskTypeIndex = args.rows[0];
+                var reportingTaskType = reportingTaskTypesGrid.getDataItem(reportingTaskTypeIndex);
 
-            // set the reporting task type description
-            if (nf.Common.isBlank(reportingTaskType.description)) {
-                $('#reporting-task-type-description').attr('title', '').html('<span class="unset">No description specified</span>');
-            } else {
-                $('#reporting-task-type-description').html(reportingTaskType.description).ellipsis();
+                // set the reporting task type description
+                if (nf.Common.isBlank(reportingTaskType.description)) {
+                    $('#reporting-task-type-description').attr('title', '').html('<span class="unset">No description specified</span>');
+                } else {
+                    $('#reporting-task-type-description').html(reportingTaskType.description).ellipsis();
+                }
+
+                // populate the dom
+                $('#reporting-task-type-name').text(reportingTaskType.label).ellipsis();
+                $('#selected-reporting-task-name').text(reportingTaskType.label);
+                $('#selected-reporting-task-type').text(reportingTaskType.type);
+
+                // show the selected reporting task
+                $('#reporting-task-description-container').show();
             }
-
-            // populate the dom
-            $('#reporting-task-type-name').text(reportingTaskType.label).ellipsis();
-            $('#selected-reporting-task-name').text(reportingTaskType.label);
-            $('#selected-reporting-task-type').text(reportingTaskType.type);
-
-            // show the selected reporting task
-            $('#reporting-task-description-container').show();
         });
         reportingTaskTypesGrid.onDblClick.subscribe(function (e, args) {
             var reportingTaskType = reportingTaskTypesGrid.getDataItem(args.row);
@@ -1293,20 +1306,25 @@ nf.Settings = (function () {
                         }
                     }
                 }],
-            close: function () {
-                // clear the selected row
-                clearSelectedReportingTask();
+            handler: {
+                close: function () {
+                    // clear the selected row
+                    clearSelectedReportingTask();
 
-                // unselect any current selection
-                var reportingTaskTypesGrid = $('#reporting-task-types-table').data('gridInstance');
-                reportingTaskTypesGrid.setSelectedRows([]);
-                reportingTaskTypesGrid.resetActiveCell();
+                    // clear any filter strings
+                    $('#reporting-task-type-filter').addClass(config.styles.filterList).val(config.filterText);
 
-                // clear any filter strings
-                $('#reporting-task-type-filter').addClass(config.styles.filterList).val(config.filterText);
+                    // clear the tagcloud
+                    $('#reporting-task-tag-cloud').tagcloud('clearSelectedTags');
 
-                // clear the tagcloud
-                $('#reporting-task-tag-cloud').tagcloud('clearSelectedTags');
+                    // reset the filter
+                    applyReportingTaskTypeFilter();
+
+                    // unselect any current selection
+                    var reportingTaskTypesGrid = $('#reporting-task-types-table').data('gridInstance');
+                    reportingTaskTypesGrid.setSelectedRows([]);
+                    reportingTaskTypesGrid.resetActiveCell();
+                }
             }
         }).draggable({
             containment: 'parent',
@@ -1614,6 +1632,9 @@ nf.Settings = (function () {
                     if (nf.Common.isDefinedAndNotNull(controllerServiceTypesGrid)) {
                         controllerServiceTypesGrid.resizeCanvas();
                     }
+                    
+                    // set the initial focus
+                    $('#controller-service-type-filter').focus();
                 } else if (selectedTab === 'Reporting Tasks') {
                     $('#new-reporting-task-dialog').modal('show');
                     
@@ -1622,6 +1643,9 @@ nf.Settings = (function () {
                     if (nf.Common.isDefinedAndNotNull(reportingTaskTypesGrid)) {
                         reportingTaskTypesGrid.resizeCanvas();
                     }
+                    
+                    // set the initial focus
+                    $('#reporting-task-type-filter').focus();
                 }
             });
 
