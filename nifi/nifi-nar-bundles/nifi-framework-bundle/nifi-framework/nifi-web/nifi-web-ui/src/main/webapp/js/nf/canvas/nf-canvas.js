@@ -538,9 +538,18 @@ nf.Canvas = (function () {
             // consider escape, before checking dialogs
             if (!isCtrl && evt.keyCode === 27) {
                 // esc
-                nf.Actions.hideDialogs();
+                var target = $(evt.target);
+                if (target.length) {
+                    if (target.get(0) === $('#canvas-body').get(0)) {
+                        nf.Actions.hideDialogs();
+                    } else {
+                        target.closest('.cancellable.dialog:visible').modal('hide');
+                    }
+                    
+                    evt.stopPropagation();
+                    evt.preventDefault();
+                }
 
-                evt.preventDefault();
                 return;
             }
             

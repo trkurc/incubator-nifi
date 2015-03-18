@@ -111,7 +111,6 @@
             if (e.which === $.ui.keyCode.ENTER && !e.shiftKey) {
                 scope.save();
             } else if (e.which === $.ui.keyCode.ESCAPE) {
-                e.preventDefault();
                 scope.cancel();
             }
         };
@@ -887,6 +886,19 @@
                 }
             }
         });
+        propertyGrid.onKeyDown.subscribe(function(e, args) {
+            if (e.which === $.ui.keyCode.ESCAPE) {
+                var editorLock = propertyGrid.getEditorLock();
+                if (editorLock.isActive()) {
+                    editorLock.cancelCurrentEdit();
+                    
+                    // prevents standard cancel logic - standard logic does
+                    // not stop propagation when escape is pressed
+                    e.stopImmediatePropagation();
+                    e.preventDefault();
+                }
+            }
+        });
 
         // wire up the dataview to the grid
         propertyData.onRowCountChanged.subscribe(function (e, args) {
@@ -1142,6 +1154,7 @@
                             if (e.which === $.ui.keyCode.ENTER && !e.shiftKey) {
                                 add();
                             } else if (e.which === $.ui.keyCode.ESCAPE) {
+                                e.stopPropagation();
                                 e.preventDefault();
                                 cancel();
                             }

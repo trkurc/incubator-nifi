@@ -63,10 +63,10 @@ nf.ControllerService = (function () {
 
         // determine if any controller service settings have changed
 
-        if ($('#controller-service-name').val() !== details.name) {
+        if ($('#controller-service-name').val() !== details['name']) {
             return true;
         }
-        if ($('#controller-service-comments').val() !== details.comments) {
+        if ($('#controller-service-comments').val() !== details['comments']) {
             return true;
         }
         
@@ -91,6 +91,7 @@ nf.ControllerService = (function () {
         var controllerServiceDto = {};
         controllerServiceDto['id'] = $('#controller-service-id').text();
         controllerServiceDto['name'] = $('#controller-service-name').val();
+        controllerServiceDto['comments'] = $('#controller-service-comments').val();
         
         // set the properties
         if ($.isEmptyObject(properties) === false) {
@@ -1183,7 +1184,7 @@ nf.ControllerService = (function () {
                         
                         // reset dialog
                         enableDialog.modal('setButtonModel', [{
-                            buttonText: 'Disable',
+                            buttonText: 'Enable',
                             handler: {
                                 click: enableHandler
                             }

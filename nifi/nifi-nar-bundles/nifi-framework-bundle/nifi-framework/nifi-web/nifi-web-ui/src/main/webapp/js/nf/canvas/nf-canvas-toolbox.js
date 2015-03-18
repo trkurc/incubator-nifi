@@ -239,22 +239,25 @@ nf.CanvasToolbox = (function () {
      * Resets the filtered processor types.
      */
     var resetProcessorDialog = function () {
+        // clear the selected tag cloud
+        $('#processor-tag-cloud').tagcloud('clearSelectedTags');
+        
+        // clear any filter strings
+        $('#processor-type-filter').addClass(config.styles.filterList).val(config.filterText);
+
+        // reapply the filter
+        applyFilter();
+
         // clear the selected row
         $('#processor-type-description').text('');
         $('#processor-type-name').text('');
         $('#selected-processor-name').text('');
         $('#selected-processor-type').text('');
-
+        
         // unselect any current selection
         var processTypesGrid = $('#processor-types-table').data('gridInstance');
         processTypesGrid.setSelectedRows([]);
         processTypesGrid.resetActiveCell();
-
-        // clear any filter strings
-        $('#processor-type-filter').addClass(config.styles.filterList).val(config.filterText);
-
-        // clear the selected tag cloud
-        $('#processor-tag-cloud').tagcloud('clearSelectedTags');
     };
 
     /**
