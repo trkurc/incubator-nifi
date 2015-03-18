@@ -127,6 +127,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Heartbeater;
 import org.apache.nifi.controller.ReportingTaskNode;
+import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.StandardFlowSerializer;
 import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.exception.ProcessorLifeCycleException;
@@ -219,6 +220,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
 import com.sun.jersey.api.client.ClientResponse;
+
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
@@ -941,6 +943,9 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                 final String taskSchedulingPeriod = DomUtils.getChild(taskElement, "schedulingPeriod").getTextContent().trim();
                 final String taskClass = DomUtils.getChild(taskElement, "class").getTextContent().trim();
 
+                final String scheduleStateValue = DomUtils.getChild(taskElement, "scheduledState").getTextContent().trim();
+                final ScheduledState scheduledState = ScheduledState.valueOf(scheduleStateValue);
+                
                 //optional task-specific properties
                 for (final Element optionalProperty : DomUtils.getChildElementsByTagName(taskElement, "property")) {
                     final String name = optionalProperty.getAttribute("name");
@@ -980,7 +985,23 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                     reportingTaskNode.setProperty(entry.getKey().getName(), entry.getValue());
                 }
 
-                processScheduler.schedule(reportingTaskNode);
+                reportingTaskNode.setScheduledState(scheduledState);
+                if ( ScheduledState.RUNNING.equals(scheduledState) ) {
+                    if ( reportingTaskNode.isValid() ) {
+                        try {
+                            processScheduler.schedule(reportingTaskNode);
+                        } catch (final Exception e) {
+                            logger.error("Failed to start {} due to {}", reportingTaskNode, e);
+                            if ( logger.isDebugEnabled() ) {
+                                logger.error("", e);
+                            }
+                        }
+                    } else {
+                        logger.error("Failed to start {} because it is invalid due to {}", reportingTaskNode, reportingTaskNode.getValidationErrors());
+                    }
+                }
+                
+                
                 tasks.put(reportingTaskNode.getIdentifier(), reportingTaskNode);
             }
         } catch (final SAXException | ParserConfigurationException | IOException | DOMException | NumberFormatException | InitializationException t) {
@@ -1368,6 +1389,11 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         return controllerServiceProvider.isControllerServiceEnabled(serviceIdentifier);
     }
 
+    @Override
+    public boolean isControllerServiceEnabling(final String serviceIdentifier) {
+        return controllerServiceProvider.isControllerServiceEnabling(serviceIdentifier);
+    }
+    
     @Override
     public String getControllerServiceName(final String serviceIdentifier) {
     	return controllerServiceProvider.getControllerServiceName(serviceIdentifier);
@@ -2621,24 +2647,26 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             final Set<ControllerServiceReferencingComponentDTO> nodeReferencingComponents = nodeEntry.getValue();
 
             // go through all the nodes referencing components
-            for (final ControllerServiceReferencingComponentDTO nodeReferencingComponent : nodeReferencingComponents) {
-                // handle active thread counts
-                if (nodeReferencingComponent.getActiveThreadCount() != null && nodeReferencingComponent.getActiveThreadCount() > 0) {
-                    final Integer current = activeThreadCounts.get(nodeReferencingComponent.getId());
-                    if (current == null) {
-                        activeThreadCounts.put(nodeReferencingComponent.getId(), nodeReferencingComponent.getActiveThreadCount());
-                    } else {
-                        activeThreadCounts.put(nodeReferencingComponent.getId(), nodeReferencingComponent.getActiveThreadCount() + current);
+            if ( nodeReferencingComponents != null ) {
+                for (final ControllerServiceReferencingComponentDTO nodeReferencingComponent : nodeReferencingComponents) {
+                    // handle active thread counts
+                    if (nodeReferencingComponent.getActiveThreadCount() != null && nodeReferencingComponent.getActiveThreadCount() > 0) {
+                        final Integer current = activeThreadCounts.get(nodeReferencingComponent.getId());
+                        if (current == null) {
+                            activeThreadCounts.put(nodeReferencingComponent.getId(), nodeReferencingComponent.getActiveThreadCount());
+                        } else {
+                            activeThreadCounts.put(nodeReferencingComponent.getId(), nodeReferencingComponent.getActiveThreadCount() + current);
+                        }
                     }
-                }
-                
-                // handle controller service state
-                final String state = states.get(nodeReferencingComponent.getId());
-                if (state == null) {
-                    if (ControllerServiceState.DISABLING.name().equals(nodeReferencingComponent.getState())) {
-                        states.put(nodeReferencingComponent.getId(), ControllerServiceState.DISABLING.name());
-                    } else if (ControllerServiceState.ENABLING.name().equals(nodeReferencingComponent.getState())) {
-                        states.put(nodeReferencingComponent.getId(), ControllerServiceState.ENABLING.name());
+                    
+                    // handle controller service state
+                    final String state = states.get(nodeReferencingComponent.getId());
+                    if (state == null) {
+                        if (ControllerServiceState.DISABLING.name().equals(nodeReferencingComponent.getState())) {
+                            states.put(nodeReferencingComponent.getId(), ControllerServiceState.DISABLING.name());
+                        } else if (ControllerServiceState.ENABLING.name().equals(nodeReferencingComponent.getState())) {
+                            states.put(nodeReferencingComponent.getId(), ControllerServiceState.ENABLING.name());
+                        }
                     }
                 }
             }

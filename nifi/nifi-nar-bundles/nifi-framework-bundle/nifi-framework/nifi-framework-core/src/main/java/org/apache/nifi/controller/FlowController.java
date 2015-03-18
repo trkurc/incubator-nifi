@@ -2682,6 +2682,11 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     @Override
+    public boolean isControllerServiceEnabling(final String serviceIdentifier) {
+        return controllerServiceProvider.isControllerServiceEnabling(serviceIdentifier);
+    }
+    
+    @Override
     public String getControllerServiceName(final String serviceIdentifier) {
     	return controllerServiceProvider.getControllerServiceName(serviceIdentifier);
     }

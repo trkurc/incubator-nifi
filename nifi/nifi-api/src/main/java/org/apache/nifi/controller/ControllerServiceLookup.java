@@ -42,6 +42,18 @@ public interface ControllerServiceLookup {
     boolean isControllerServiceEnabled(String serviceIdentifier);
 
     /**
+     * Returns <code>true</code> if the Controller Service with the given
+     * identifier has been enabled but is still in the transitioning state,
+     * otherwise returns <code>false</code>.
+     * If the given identifier is not known by this ControllerServiceLookup,
+     * returns <code>false</code>.
+     * 
+     * @param serviceIdentifier
+     * @return
+     */
+    boolean isControllerServiceEnabling(String serviceIdentifier);
+    
+    /**
      * Returns <code>true</code> if the given Controller Service is enabled,
      * <code>false</code> otherwise. If the given Controller Service is not
      * known by this ControllerServiceLookup, returns <code>false</code>

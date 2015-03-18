@@ -101,4 +101,9 @@ public class MockValidationContext implements ValidationContext, ControllerServi
     public boolean isValidationRequired(final ControllerService service) {
         return true;
     }
+
+    @Override
+    public boolean isControllerServiceEnabling(String serviceIdentifier) {
+        return context.isControllerServiceEnabling(serviceIdentifier);
+    }
 }

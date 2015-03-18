@@ -76,4 +76,9 @@ public class MockProcessorInitializationContext implements ProcessorInitializati
     public boolean isControllerServiceEnabled(ControllerService service) {
         return context.isControllerServiceEnabled(service);
     }
+
+    @Override
+    public boolean isControllerServiceEnabling(String serviceIdentifier) {
+        return context.isControllerServiceEnabling(serviceIdentifier);
+    }
 }

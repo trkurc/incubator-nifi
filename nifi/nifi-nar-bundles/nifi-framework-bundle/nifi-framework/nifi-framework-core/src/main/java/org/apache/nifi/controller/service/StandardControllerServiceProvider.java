@@ -156,7 +156,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             } else {
                 proxiedService = (ControllerService) Proxy.newProxyInstance(cl, getInterfaces(controllerServiceClass), invocationHandler);
             }
-            logger.info("Create Controller Service of type {} with identifier {}", type, id);
+            logger.info("Created Controller Service of type {} with identifier {}", type, id);
 
             final ComponentLog serviceLogger = new SimpleProcessLogger(id, originalService);
             originalService.initialize(new StandardControllerServiceInitializationContext(id, serviceLogger, this));
@@ -308,6 +308,12 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     @Override
+    public boolean isControllerServiceEnabling(final String serviceIdentifier) {
+        final ControllerServiceNode node = controllerServices.get(serviceIdentifier);
+        return (node == null) ? false : (ControllerServiceState.ENABLING == node.getState());
+    }
+    
+    @Override
     public ControllerServiceNode getControllerServiceNode(final String serviceIdentifier) {
         return controllerServices.get(serviceIdentifier);
     }
@@ -396,7 +402,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         
         return references;
     }
-    
+
     
     @Override
     public void enableReferencingServices(final ControllerServiceNode serviceNode) {

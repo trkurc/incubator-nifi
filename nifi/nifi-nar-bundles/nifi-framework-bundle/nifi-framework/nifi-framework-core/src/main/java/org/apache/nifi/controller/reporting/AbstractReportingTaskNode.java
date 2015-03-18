@@ -245,4 +245,10 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
             }
         }
     }
+    
+    
+    @Override
+    public String toString() {
+        return "ReportingTask[id=" + getIdentifier() + ", name=" + getName() + "]";
+    }
 }

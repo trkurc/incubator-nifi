@@ -167,5 +167,10 @@ public class TestStandardPropertyValue {
         public String getControllerServiceName(String serviceIdentifier) {
         	return null;
         }
+        
+        @Override
+        public boolean isControllerServiceEnabling(String serviceIdentifier) {
+            return false;
+        }
     }
 }

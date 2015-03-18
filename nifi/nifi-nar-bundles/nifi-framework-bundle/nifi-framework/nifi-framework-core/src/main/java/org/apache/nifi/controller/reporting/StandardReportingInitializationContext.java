@@ -94,6 +94,11 @@ public class StandardReportingInitializationContext implements ReportingInitiali
     }
 
     @Override
+    public boolean isControllerServiceEnabling(final String serviceIdentifier) {
+        return serviceProvider.isControllerServiceEnabling(serviceIdentifier);
+    }
+    
+    @Override
     public ControllerServiceLookup getControllerServiceLookup() {
         return this;
     }

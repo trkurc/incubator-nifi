@@ -19,6 +19,8 @@ package org.apache.nifi.controller.scheduling;
 import static java.util.Objects.requireNonNull;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -32,11 +34,13 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.AbstractPort;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Heartbeater;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
@@ -281,13 +285,22 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         }
 
         final Runnable startProcRunnable = new Runnable() {
-            @SuppressWarnings("deprecation")
             @Override
+            @SuppressWarnings("deprecation")
             public void run() {
                 try (final NarCloseable x = NarCloseable.withNarLoader()) {
                     long lastStopTime = scheduleState.getLastStopTime();
                     final StandardProcessContext processContext = new StandardProcessContext(procNode, controllerServiceProvider, encryptor);
 
+                    final Set<String> serviceIds = new HashSet<>();
+                    for ( final PropertyDescriptor descriptor : processContext.getProperties().keySet() ) {
+                        final Class<? extends ControllerService> serviceDefinition = descriptor.getControllerServiceDefinition();
+                        if ( serviceDefinition != null ) {
+                            final String serviceId = processContext.getProperty(descriptor).getValue();
+                            serviceIds.add(serviceId);
+                        }
+                    }
+                    
                     while (true) {
                         try {
                             synchronized (scheduleState) {

@@ -214,88 +214,90 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         logger.trace("Parsing proposed flow bytes as DOM document");
         final Document configuration = parseFlowBytes(proposedFlow.getFlow());
 
-        // attempt to sync controller with proposed flow
-        try {
-            if (configuration != null) {
-                // get the root element
-                final Element rootElement = (Element) configuration.getElementsByTagName("flowController").item(0);
-
-                // set controller config
-                logger.trace("Updating flow config");
-                final Integer maxThreadCount = getInteger(rootElement, "maxThreadCount");
-                if (maxThreadCount == null) {
-                    controller.setMaxTimerDrivenThreadCount(getInt(rootElement, "maxTimerDrivenThreadCount"));
-                    controller.setMaxEventDrivenThreadCount(getInt(rootElement, "maxEventDrivenThreadCount"));
-                } else {
-                    controller.setMaxTimerDrivenThreadCount(maxThreadCount * 2 / 3);
-                    controller.setMaxEventDrivenThreadCount(maxThreadCount / 3);
+        synchronized (configuration) {
+            // attempt to sync controller with proposed flow
+            try {
+                if (configuration != null) {
+                    // get the root element
+                    final Element rootElement = (Element) configuration.getElementsByTagName("flowController").item(0);
+    
+                    // set controller config
+                    logger.trace("Updating flow config");
+                    final Integer maxThreadCount = getInteger(rootElement, "maxThreadCount");
+                    if (maxThreadCount == null) {
+                        controller.setMaxTimerDrivenThreadCount(getInt(rootElement, "maxTimerDrivenThreadCount"));
+                        controller.setMaxEventDrivenThreadCount(getInt(rootElement, "maxEventDrivenThreadCount"));
+                    } else {
+                        controller.setMaxTimerDrivenThreadCount(maxThreadCount * 2 / 3);
+                        controller.setMaxEventDrivenThreadCount(maxThreadCount / 3);
+                    }
+    
+                    // get the root group XML element
+                    final Element rootGroupElement = (Element) rootElement.getElementsByTagName("rootGroup").item(0);
+    
+                    final Element controllerServicesElement = (Element) DomUtils.getChild(rootElement, "controllerServices");
+    	            if ( controllerServicesElement != null ) {
+    	                final List<Element> serviceElements = DomUtils.getChildElementsByTagName(controllerServicesElement, "controllerService");
+    	                
+    	                if ( !initialized || existingFlowEmpty ) {
+    	                    ControllerServiceLoader.loadControllerServices(serviceElements, controller, encryptor, controller.getBulletinRepository(), autoResumeState);
+    	                } else {
+    	                    for ( final Element serviceElement : serviceElements ) {
+    	                        updateControllerService(controller, serviceElement, encryptor);
+    	                    }
+    	                }
+                    }
+    
+                    // if this controller isn't initialized or its emtpy, add the root group, otherwise update
+                    if (!initialized || existingFlowEmpty) {
+                        logger.trace("Adding root process group");
+                        addProcessGroup(controller, /* parent group */ null, rootGroupElement, encryptor);
+                    } else {
+                        logger.trace("Updating root process group");
+                        updateProcessGroup(controller, /* parent group */ null, rootGroupElement, encryptor);
+                    }
+    
+                    final Element reportingTasksElement = (Element) DomUtils.getChild(rootElement, "reportingTasks");
+                    if ( reportingTasksElement != null ) {
+                    	final List<Element> taskElements = DomUtils.getChildElementsByTagName(reportingTasksElement, "reportingTask");
+                    	for ( final Element taskElement : taskElements ) {
+                    		if ( !initialized || existingFlowEmpty ) {
+                    			addReportingTask(controller, taskElement, encryptor);
+                    		} else {
+                    			updateReportingTask(controller, taskElement, encryptor);
+                    		}
+                    	}
+                    }
                 }
-
-                // get the root group XML element
-                final Element rootGroupElement = (Element) rootElement.getElementsByTagName("rootGroup").item(0);
-
-                final Element controllerServicesElement = (Element) DomUtils.getChild(rootElement, "controllerServices");
-	            if ( controllerServicesElement != null ) {
-	                final List<Element> serviceElements = DomUtils.getChildElementsByTagName(controllerServicesElement, "controllerService");
-	                
-	                if ( !initialized || existingFlowEmpty ) {
-	                    ControllerServiceLoader.loadControllerServices(serviceElements, controller, encryptor, controller.getBulletinRepository(), autoResumeState);
-	                } else {
-	                    for ( final Element serviceElement : serviceElements ) {
-	                        updateControllerService(controller, serviceElement, encryptor);
-	                    }
-	                }
+    
+                logger.trace("Synching templates");
+                if ((existingTemplates == null || existingTemplates.length == 0) && proposedFlow.getTemplates() != null && proposedFlow.getTemplates().length > 0) {
+                    // need to load templates
+                    final TemplateManager templateManager = controller.getTemplateManager();
+                    final List<Template> proposedTemplateList = TemplateManager.parseBytes(proposedFlow.getTemplates());
+                    for (final Template template : proposedTemplateList) {
+                        templateManager.addTemplate(template.getDetails());
+                    }
                 }
-
-                // if this controller isn't initialized or its emtpy, add the root group, otherwise update
-                if (!initialized || existingFlowEmpty) {
-                    logger.trace("Adding root process group");
-                    addProcessGroup(controller, /* parent group */ null, rootGroupElement, encryptor);
-                } else {
-                    logger.trace("Updating root process group");
-                    updateProcessGroup(controller, /* parent group */ null, rootGroupElement, encryptor);
+    
+                // clear the snippets that are currently in memory
+                logger.trace("Clearing existing snippets");
+                final SnippetManager snippetManager = controller.getSnippetManager();
+                snippetManager.clear();
+    
+                // if proposed flow has any snippets, load them
+                logger.trace("Loading proposed snippets");
+                final byte[] proposedSnippets = proposedFlow.getSnippets();
+                if (proposedSnippets != null && proposedSnippets.length > 0) {
+                    for (final StandardSnippet snippet : SnippetManager.parseBytes(proposedSnippets)) {
+                        snippetManager.addSnippet(snippet);
+                    }
                 }
-
-                final Element reportingTasksElement = (Element) DomUtils.getChild(rootElement, "reportingTasks");
-                if ( reportingTasksElement != null ) {
-                	final List<Element> taskElements = DomUtils.getChildElementsByTagName(reportingTasksElement, "reportingTask");
-                	for ( final Element taskElement : taskElements ) {
-                		if ( !initialized || existingFlowEmpty ) {
-                			addReportingTask(controller, taskElement, encryptor);
-                		} else {
-                			updateReportingTask(controller, taskElement, encryptor);
-                		}
-                	}
-                }
+    
+                logger.debug("Finished synching flows");
+            } catch (final Exception ex) {
+                throw new FlowSynchronizationException(ex);
             }
-
-            logger.trace("Synching templates");
-            if ((existingTemplates == null || existingTemplates.length == 0) && proposedFlow.getTemplates() != null && proposedFlow.getTemplates().length > 0) {
-                // need to load templates
-                final TemplateManager templateManager = controller.getTemplateManager();
-                final List<Template> proposedTemplateList = TemplateManager.parseBytes(proposedFlow.getTemplates());
-                for (final Template template : proposedTemplateList) {
-                    templateManager.addTemplate(template.getDetails());
-                }
-            }
-
-            // clear the snippets that are currently in memory
-            logger.trace("Clearing existing snippets");
-            final SnippetManager snippetManager = controller.getSnippetManager();
-            snippetManager.clear();
-
-            // if proposed flow has any snippets, load them
-            logger.trace("Loading proposed snippets");
-            final byte[] proposedSnippets = proposedFlow.getSnippets();
-            if (proposedSnippets != null && proposedSnippets.length > 0) {
-                for (final StandardSnippet snippet : SnippetManager.parseBytes(proposedSnippets)) {
-                    snippetManager.addSnippet(snippet);
-                }
-            }
-
-            logger.debug("Finished synching flows");
-        } catch (final Exception ex) {
-            throw new FlowSynchronizationException(ex);
         }
     }
 
