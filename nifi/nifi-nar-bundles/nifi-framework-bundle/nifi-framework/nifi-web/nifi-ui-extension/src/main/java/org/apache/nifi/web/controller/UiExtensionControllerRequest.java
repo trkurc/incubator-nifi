@@ -14,14 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web;
+package org.apache.nifi.web.controller;
+
+import org.apache.nifi.ui.extension.UiExtensionType;
+import org.apache.nifi.web.Revision;
 
 /**
- * Context configuration for methods invoked from the NiFiWebContext.
+ * A UI extensions request object containing required items to querying the controller.
  */
-@Deprecated
-public interface NiFiWebContextConfig {
+public interface UiExtensionControllerRequest {
 
+    /**
+     * The type of UI extension supports.
+     * 
+     * @return 
+     */
+    UiExtensionType getExtensionType();
+    
     /**
      * The request protocol scheme (http or https). When scheme is https, the
      * X509Certificate can be used for subsequent remote requests.
@@ -31,9 +40,9 @@ public interface NiFiWebContextConfig {
     String getScheme();
 
     /**
-     * @return the processor ID
+     * @return the component ID
      */
-    String getProcessorId();
+    String getId();
 
     /**
      * @return the revision

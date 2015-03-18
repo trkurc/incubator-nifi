@@ -66,6 +66,7 @@ import org.apache.nifi.web.util.ClientResponseUtils;
  * Implements the NiFiWebContext interface to support a context in both
  * standalone and clustered environments.
  */
+@Deprecated
 public class StandardNiFiWebContext implements NiFiWebContext {
 
     private static final Logger logger = LoggerFactory.getLogger(StandardNiFiWebContext.class);

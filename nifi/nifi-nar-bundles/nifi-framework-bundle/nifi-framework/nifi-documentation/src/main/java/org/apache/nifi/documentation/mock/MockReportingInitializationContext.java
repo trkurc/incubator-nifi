@@ -19,6 +19,7 @@ package org.apache.nifi.documentation.mock;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
@@ -60,4 +61,10 @@ public class MockReportingInitializationContext implements ReportingInitializati
     public SchedulingStrategy getSchedulingStrategy() {
         return SchedulingStrategy.TIMER_DRIVEN;
     }
+
+    @Override
+    public ComponentLog getLogger() {
+        return null;
+    }
+    
 }

@@ -22,19 +22,20 @@ import java.util.Map;
 /**
  *
  */
-@Deprecated
-public class ProcessorInfo {
+public class ComponentConfiguration {
 
     private final String id;
     private final String name;
+    private final String type;
     private final String state;
     private final String annotationData;
     private final Map<String, String> properties;
     private final Collection<String> validationErrors;
 
-    private ProcessorInfo(final Builder builder) {
+    private ComponentConfiguration(final Builder builder) {
         this.id = builder.id;
         this.name = builder.name;
+        this.type = builder.type;
         this.state = builder.state;
         this.annotationData = builder.annotationData;
         this.properties = builder.properties;
@@ -49,6 +50,10 @@ public class ProcessorInfo {
         return name;
     }
 
+    public String getType() {
+        return type;
+    }
+    
     public String getState() {
         return state;
     }
@@ -69,6 +74,7 @@ public class ProcessorInfo {
 
         private String id;
         private String name;
+        private String type;
         private String state;
         private String annotationData;
         private Map<String, String> properties;
@@ -81,6 +87,11 @@ public class ProcessorInfo {
 
         public Builder name(final String name) {
             this.name = name;
+            return this;
+        }
+        
+        public Builder type(final String type) {
+            this.type = type;
             return this;
         }
 
@@ -104,8 +115,8 @@ public class ProcessorInfo {
             return this;
         }
 
-        public ProcessorInfo build() {
-            return new ProcessorInfo(this);
+        public ComponentConfiguration build() {
+            return new ComponentConfiguration(this);
         }
     }
 }

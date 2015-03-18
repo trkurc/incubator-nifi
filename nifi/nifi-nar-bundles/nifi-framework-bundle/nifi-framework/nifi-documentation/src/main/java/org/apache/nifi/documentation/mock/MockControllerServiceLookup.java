@@ -52,4 +52,9 @@ public class MockControllerServiceLookup implements ControllerServiceLookup {
         return Collections.emptySet();
     }
 
+    @Override
+    public String getControllerServiceName(String serviceIdentifier) {
+        return null;
+    }
+
 }

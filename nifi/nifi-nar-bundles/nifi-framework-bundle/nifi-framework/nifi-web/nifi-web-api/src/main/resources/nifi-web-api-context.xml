@@ -124,6 +124,13 @@
         <property name="auditService" ref="auditService"/>
         <property name="controllerServiceLookup" ref="controllerServiceProvider"/>
     </bean>
+    <bean id="nifiUiExtensionControllerFacade" class="org.apache.nifi.web.controller.StandardUiExtensionControllerFacade">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterManager" ref="clusterManager"/>
+        <property name="auditService" ref="auditService"/>
+        <property name="controllerServiceLookup" ref="controllerServiceProvider"/>
+    </bean>
 
     <!-- rest endpoints -->
     <bean id="controllerResource" class="org.apache.nifi.web.api.ControllerResource" scope="singleton">
