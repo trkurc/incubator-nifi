@@ -77,7 +77,12 @@
             </div>
             <div id="controller-service-comments-tab-content" class="configuration-tab">
                 <textarea cols="30" rows="4" id="controller-service-comments" name="controller-service-comments" class="controller-service-editable setting-input"></textarea>
-                <span id="read-only-controller-service-comments" class="controller-service-read-only hidden"></span>
+                <div class="setting controller-service-read-only hidden">
+                    <div class="setting-name">Comments</div>
+                    <div class="setting-field">
+                        <span id="read-only-controller-service-comments"></span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
