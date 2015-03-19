@@ -213,11 +213,11 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         // create document by parsing proposed flow bytes
         logger.trace("Parsing proposed flow bytes as DOM document");
         final Document configuration = parseFlowBytes(proposedFlow.getFlow());
-
-        synchronized (configuration) {
-            // attempt to sync controller with proposed flow
-            try {
-                if (configuration != null) {
+        
+        // attempt to sync controller with proposed flow
+        try {
+            if (configuration != null) {
+                synchronized (configuration) {
                     // get the root element
                     final Element rootElement = (Element) configuration.getElementsByTagName("flowController").item(0);
     
@@ -269,35 +269,35 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                     	}
                     }
                 }
-    
-                logger.trace("Synching templates");
-                if ((existingTemplates == null || existingTemplates.length == 0) && proposedFlow.getTemplates() != null && proposedFlow.getTemplates().length > 0) {
-                    // need to load templates
-                    final TemplateManager templateManager = controller.getTemplateManager();
-                    final List<Template> proposedTemplateList = TemplateManager.parseBytes(proposedFlow.getTemplates());
-                    for (final Template template : proposedTemplateList) {
-                        templateManager.addTemplate(template.getDetails());
-                    }
-                }
-    
-                // clear the snippets that are currently in memory
-                logger.trace("Clearing existing snippets");
-                final SnippetManager snippetManager = controller.getSnippetManager();
-                snippetManager.clear();
-    
-                // if proposed flow has any snippets, load them
-                logger.trace("Loading proposed snippets");
-                final byte[] proposedSnippets = proposedFlow.getSnippets();
-                if (proposedSnippets != null && proposedSnippets.length > 0) {
-                    for (final StandardSnippet snippet : SnippetManager.parseBytes(proposedSnippets)) {
-                        snippetManager.addSnippet(snippet);
-                    }
-                }
-    
-                logger.debug("Finished synching flows");
-            } catch (final Exception ex) {
-                throw new FlowSynchronizationException(ex);
             }
+    
+            logger.trace("Synching templates");
+            if ((existingTemplates == null || existingTemplates.length == 0) && proposedFlow.getTemplates() != null && proposedFlow.getTemplates().length > 0) {
+                // need to load templates
+                final TemplateManager templateManager = controller.getTemplateManager();
+                final List<Template> proposedTemplateList = TemplateManager.parseBytes(proposedFlow.getTemplates());
+                for (final Template template : proposedTemplateList) {
+                    templateManager.addTemplate(template.getDetails());
+                }
+            }
+
+            // clear the snippets that are currently in memory
+            logger.trace("Clearing existing snippets");
+            final SnippetManager snippetManager = controller.getSnippetManager();
+            snippetManager.clear();
+
+            // if proposed flow has any snippets, load them
+            logger.trace("Loading proposed snippets");
+            final byte[] proposedSnippets = proposedFlow.getSnippets();
+            if (proposedSnippets != null && proposedSnippets.length > 0) {
+                for (final StandardSnippet snippet : SnippetManager.parseBytes(proposedSnippets)) {
+                    snippetManager.addSnippet(snippet);
+                }
+            }
+
+            logger.debug("Finished synching flows");
+        } catch (final Exception ex) {
+            throw new FlowSynchronizationException(ex);
         }
     }
 
