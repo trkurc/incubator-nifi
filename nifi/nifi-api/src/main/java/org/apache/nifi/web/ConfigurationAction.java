@@ -19,50 +19,16 @@ package org.apache.nifi.web;
 /**
  *
  */
-@Deprecated
-public class ProcessorConfigurationAction {
+public class ConfigurationAction {
 
-    private final String processorId;
-    private final String processorName;
-    private final String processorType;
-    private final String name;
+    private final String field;
     private final String previousValue;
     private final String value;
 
-    private ProcessorConfigurationAction(final Builder builder) {
-        this.processorId = builder.processorId;
-        this.processorName = builder.processorName;
-        this.processorType = builder.processorType;
-        this.name = builder.name;
+    private ConfigurationAction(final Builder builder) {
+        this.field = builder.field;
         this.previousValue = builder.previousValue;
         this.value = builder.value;
-    }
-
-    /**
-     * Gets the id of the processor.
-     *
-     * @return
-     */
-    public String getProcessorId() {
-        return processorId;
-    }
-
-    /**
-     * Gets the name of the processor being modified.
-     *
-     * @return
-     */
-    public String getProcessorName() {
-        return processorName;
-    }
-
-    /**
-     * Gets the type of the processor being modified.
-     *
-     * @return
-     */
-    public String getProcessorType() {
-        return processorType;
     }
 
     /**
@@ -70,8 +36,8 @@ public class ProcessorConfigurationAction {
      *
      * @return
      */
-    public String getName() {
-        return name;
+    public String getField() {
+        return field;
     }
 
     /**
@@ -94,30 +60,12 @@ public class ProcessorConfigurationAction {
 
     public static class Builder {
 
-        private String processorId;
-        private String processorName;
-        private String processorType;
-        private String name;
+        private String field;
         private String previousValue;
         private String value;
 
-        public Builder processorId(final String processorId) {
-            this.processorId = processorId;
-            return this;
-        }
-
-        public Builder processorName(final String processorName) {
-            this.processorName = processorName;
-            return this;
-        }
-
-        public Builder processorType(final String processorType) {
-            this.processorType = processorType;
-            return this;
-        }
-
-        public Builder name(final String name) {
-            this.name = name;
+        public Builder field(final String field) {
+            this.field = field;
             return this;
         }
 
@@ -131,8 +79,8 @@ public class ProcessorConfigurationAction {
             return this;
         }
 
-        public ProcessorConfigurationAction build() {
-            return new ProcessorConfigurationAction(this);
+        public ConfigurationAction build() {
+            return new ConfigurationAction(this);
         }
     }
 }
