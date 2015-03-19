@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.service;
 
+import java.util.Collection;
 import java.util.Set;
 
 import org.apache.nifi.annotation.lifecycle.OnAdded;
@@ -61,6 +62,13 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
      * @param serviceNode
      */
     void enableControllerService(ControllerServiceNode serviceNode);
+    
+    /**
+     * Enables the collection of services. If a service in this collection depends on another service,
+     * the service being depended on must either already be enabled or must be in the collection as well.
+     * @param serviceNodes
+     */
+    void enableControllerServices(Collection<ControllerServiceNode> serviceNodes);
     
     /**
      * Disables the given controller service so that it cannot be used by other components. This allows

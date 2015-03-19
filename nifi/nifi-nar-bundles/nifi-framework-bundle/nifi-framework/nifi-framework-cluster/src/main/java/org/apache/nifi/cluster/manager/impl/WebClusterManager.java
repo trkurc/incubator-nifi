@@ -434,7 +434,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         processScheduler.setMaxThreadCount(SchedulingStrategy.TIMER_DRIVEN, 10);
         processScheduler.setMaxThreadCount(SchedulingStrategy.CRON_DRIVEN, 10);
         
-        controllerServiceProvider = new StandardControllerServiceProvider(processScheduler);
+        controllerServiceProvider = new StandardControllerServiceProvider(processScheduler, bulletinRepository);
     }
 
     public void start() throws IOException {
@@ -1408,6 +1408,11 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     @Override
     public void enableControllerService(final ControllerServiceNode serviceNode) {
         controllerServiceProvider.enableControllerService(serviceNode);
+    }
+    
+    @Override
+    public void enableControllerServices(final Collection<ControllerServiceNode> serviceNodes) {
+        controllerServiceProvider.enableControllerServices(serviceNodes);
     }
     
     @Override

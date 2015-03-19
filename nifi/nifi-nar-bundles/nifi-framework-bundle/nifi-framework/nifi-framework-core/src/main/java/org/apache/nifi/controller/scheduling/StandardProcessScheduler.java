@@ -281,7 +281,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         }
 
         if (!procNode.isValid()) {
-            throw new IllegalStateException("Processor " + procNode.getName() + " is not in a valid state");
+            throw new IllegalStateException("Processor " + procNode.getName() + " is not in a valid state due to " + procNode.getValidationErrors());
         }
 
         final Runnable startProcRunnable = new Runnable() {
@@ -301,9 +301,18 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                         }
                     }
                     
-                    while (true) {
+                    attemptOnScheduled: while (true) {
                         try {
                             synchronized (scheduleState) {
+                                for ( final String serviceId : serviceIds ) {
+                                    final boolean enabled = processContext.isControllerServiceEnabled(serviceId);
+                                    if ( !enabled ) {
+                                        LOG.debug("Controller Service with ID {} is not yet enabled, so will not start {} yet", serviceId, procNode);
+                                        Thread.sleep(administrativeYieldMillis);
+                                        continue attemptOnScheduled;
+                                    }
+                                }
+                                
                                 // if no longer scheduled to run, then we're finished. This can happen, for example,
                                 // if the @OnScheduled method throws an Exception and the user stops the processor 
                                 // while we're administratively yielded.
@@ -607,7 +616,6 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     @Override
     public void enableControllerService(final ControllerServiceNode service) {
-        service.verifyCanEnable();
         service.setState(ControllerServiceState.ENABLING);
         final ScheduleState scheduleState = getScheduleState(service);
         

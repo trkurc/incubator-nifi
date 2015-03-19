@@ -403,7 +403,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         processScheduler = new StandardProcessScheduler(this, this, encryptor);
         eventDrivenWorkerQueue = new EventDrivenWorkerQueue(false, false, processScheduler);
-        controllerServiceProvider = new StandardControllerServiceProvider(processScheduler);
+        controllerServiceProvider = new StandardControllerServiceProvider(processScheduler, bulletinRepository);
 
         final ProcessContextFactory contextFactory = new ProcessContextFactory(contentRepository, flowFileRepository, flowFileEventRepository, counterRepositoryRef.get(), provenanceEventRepository);
         processScheduler.setSchedulingAgent(SchedulingStrategy.EVENT_DRIVEN, new EventDrivenSchedulingAgent(
@@ -598,7 +598,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                         startConnectable(connectable);
                     }
                 } catch (final Throwable t) {
-                    LOG.error("Unable to start {} due to {}", new Object[]{connectable, t});
+                    LOG.error("Unable to start {} due to {}", new Object[]{connectable, t.toString()});
+                    if ( LOG.isDebugEnabled() ) {
+                        LOG.error("", t);
+                    }
                 }
             }
 
@@ -2631,8 +2634,12 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     
     @Override
     public void enableControllerService(final ControllerServiceNode serviceNode) {
-        serviceNode.verifyCanEnable();
         controllerServiceProvider.enableControllerService(serviceNode);
+    }
+    
+    @Override
+    public void enableControllerServices(final Collection<ControllerServiceNode> serviceNodes) {
+        controllerServiceProvider.enableControllerServices(serviceNodes);
     }
     
     @Override
