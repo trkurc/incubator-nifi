@@ -77,7 +77,7 @@ public class ConfigureComponentController extends HttpServlet {
         }
         
         // change later
-        final UiExtensionType extensionType = UiExtensionType.Processor;
+        final UiExtensionType extensionType = UiExtensionType.ProcessorConfiguration;
         
         // build the ui extension request context config
         final UiExtensionControllerRequest config = getRequestContextConig(extensionType, request);
