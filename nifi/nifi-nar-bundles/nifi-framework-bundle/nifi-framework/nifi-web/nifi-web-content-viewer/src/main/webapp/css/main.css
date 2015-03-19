@@ -37,16 +37,18 @@
 
 #content-filename {
     position: absolute;
-    top: 72px;
+    top: 58px;
     right: 50px;
     line-height: 24px;
     font-size: 12px;
-    font-weight: bold;
 }
 
 #content-type {
-    font-style: italic;
-    font-weight: normal;
+    position: absolute;
+    top: 75px;
+    right: 50px;
+    line-height: 24px;
+    font-size: 12px;
 }
 
 .pointer {
