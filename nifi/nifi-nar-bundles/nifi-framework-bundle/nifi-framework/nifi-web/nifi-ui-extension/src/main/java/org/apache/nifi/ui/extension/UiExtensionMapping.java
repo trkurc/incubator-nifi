@@ -30,10 +30,21 @@ public class UiExtensionMapping {
         this.uiExtensions = uiExtensions;
     }
 
+    /**
+     * Returns whether there are any UI extensions for the specified component type.
+     * 
+     * @param type
+     * @return 
+     */
     public boolean hasUiExtension(final String type) {
         return uiExtensions.containsKey(type);
     }
     
+    /**
+     * Gets the listing of all discovered UI extensions for the specified component type.
+     * @param type
+     * @return 
+     */
     public List<UiExtension> getUiExtension(final String type) {
         return uiExtensions.get(type);
     }

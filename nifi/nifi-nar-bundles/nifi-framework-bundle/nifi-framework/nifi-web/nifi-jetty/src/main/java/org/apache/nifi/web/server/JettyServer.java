@@ -54,7 +54,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.ui.extension.UiExtension;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
-import org.apache.nifi.web.ConfigurationContext;
+import org.apache.nifi.web.NiFiWebConfigurationContext;
 import org.apache.nifi.web.UiExtensionType;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
@@ -357,10 +357,11 @@ public class JettyServer implements NiFiServer {
         BufferedReader in = new BufferedReader(new InputStreamReader(jarFile.getInputStream(jarEntry)));
 
         // read in each configured type
-        String componentType;
-        while ((componentType = in.readLine()) != null) {
-            // ensure the line isn't blank
-            if (StringUtils.isNotBlank(componentType)) {
+        String rawComponentType;
+        while ((rawComponentType = in.readLine()) != null) {
+            // extract the component type
+            final String componentType = extractComponentType(rawComponentType);
+            if (componentType != null) {
                 List<String> extensions = uiExtensions.get(uiExtensionType);
                 
                 // if there are currently no extensions for this type create it
@@ -393,6 +394,21 @@ public class JettyServer implements NiFiServer {
     }
     
     /**
+     * Extracts the component type. Trims the line and considers comments. Returns null if no type was found.
+     * 
+     * @param line
+     * @return 
+     */
+    private String extractComponentType(final String line) {
+        final String trimmedLine = line.trim();
+        if (!trimmedLine.isEmpty() && !trimmedLine.startsWith("#")) {
+            final int indexOfPound = trimmedLine.indexOf("#");
+            return (indexOfPound > 0) ? trimmedLine.substring(0, indexOfPound) : trimmedLine;
+        }
+        return null;
+    }
+    
+    /**
      * Loads the processor types that the specified war file is a custom UI for.
      *
      * @param warFile
@@ -413,10 +429,11 @@ public class JettyServer implements NiFiServer {
                 BufferedReader in = new BufferedReader(new InputStreamReader(jarFile.getInputStream(jarEntry)));
 
                 // read in each configured type
-                String processorType;
-                while ((processorType = in.readLine()) != null) {
-                    // ensure the line isn't blank
-                    if (StringUtils.isNotBlank(processorType)) {
+                String rawProcessorType;
+                while ((rawProcessorType = in.readLine()) != null) {
+                    // extract the processor type
+                    final String processorType = extractComponentType(rawProcessorType);
+                    if (processorType != null) {
                         processorTypes.add(processorType);
                     }
                 }
@@ -669,7 +686,7 @@ public class JettyServer implements NiFiServer {
             if (webApiContext != null && CollectionUtils.isNotEmpty(uiExtensionWebContexts)) {
                 final ServletContext webApiServletContext = webApiContext.getServletHandler().getServletContext();
                 final WebApplicationContext webApplicationContext = WebApplicationContextUtils.getRequiredWebApplicationContext(webApiServletContext);
-                final ConfigurationContext configurationContext = webApplicationContext.getBean("nifiWebConfigurationContext", ConfigurationContext.class);
+                final NiFiWebConfigurationContext configurationContext = webApplicationContext.getBean("nifiWebConfigurationContext", NiFiWebConfigurationContext.class);
                 
                 for (final WebAppContext customUiContext : uiExtensionWebContexts) {
                     // set the NiFi context in each custom ui servlet context

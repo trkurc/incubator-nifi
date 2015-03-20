@@ -19,7 +19,7 @@ package org.apache.nifi.web;
 /**
  * Contextual details required to make a request from a UI extension.
  */
-public interface RequestContext {
+public interface NiFiWebRequestContext {
 
     /**
      * Returns the type of UI extension is making the request.

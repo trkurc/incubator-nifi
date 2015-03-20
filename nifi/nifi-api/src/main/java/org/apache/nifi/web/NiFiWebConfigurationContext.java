@@ -24,7 +24,7 @@ import org.apache.nifi.controller.ControllerService;
  * NiFi web context providing limited access to dataflow configuration for
  * component custom UIs.
  */
-public interface ConfigurationContext {
+public interface NiFiWebConfigurationContext {
     
     /**
      * Gets the ControllerService for the specified identifier. If a
@@ -51,7 +51,7 @@ public interface ConfigurationContext {
      * @param requestContext
      * @param actions
      */
-    void saveActions(RequestContext requestContext, Collection<ConfigurationAction> actions);
+    void saveActions(NiFiWebRequestContext requestContext, Collection<ConfigurationAction> actions);
 
     /**
      * Gets the current user dn. Returns null if no user is found.
@@ -80,7 +80,7 @@ public interface ConfigurationContext {
      * set for the underlying component. This exception will only be thrown when operating
      * in a cluster.
      */
-    ComponentDetails setAnnotationData(ConfigurationRequestContext configurationContext, String annotationData) throws ResourceNotFoundException, InvalidRevisionException, ClusterRequestException;
+    ComponentDetails setAnnotationData(NiFiWebConfigurationRequestContext configurationContext, String annotationData) throws ResourceNotFoundException, InvalidRevisionException, ClusterRequestException;
     
     /**
      * Gets the details for the underlying component (including configuration, validation errors, and annotation data).
@@ -92,5 +92,5 @@ public interface ConfigurationContext {
      * retrieved from the cluster. This exception will only be thrown when
      * operating in a cluster.
      */
-    ComponentDetails getComponentDetails(RequestContext requestContext) throws ResourceNotFoundException, ClusterRequestException;
+    ComponentDetails getComponentDetails(NiFiWebRequestContext requestContext) throws ResourceNotFoundException, ClusterRequestException;
 }
