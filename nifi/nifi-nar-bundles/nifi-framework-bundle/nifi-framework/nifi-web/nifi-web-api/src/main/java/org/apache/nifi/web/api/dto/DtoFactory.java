@@ -1899,7 +1899,7 @@ public final class DtoFactory {
      * @param propertyDescriptor
      * @return
      */
-    private PropertyDescriptorDTO createPropertyDescriptorDto(final PropertyDescriptor propertyDescriptor) {
+    public PropertyDescriptorDTO createPropertyDescriptorDto(final PropertyDescriptor propertyDescriptor) {
         if (propertyDescriptor == null) {
             return null;
         }

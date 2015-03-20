@@ -43,6 +43,7 @@ import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.ComponentHistoryDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
+import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
@@ -379,6 +380,16 @@ public interface NiFiServiceFacade {
      */
     StatusHistoryDTO getProcessorStatusHistory(String groupId, String id);
 
+    /**
+     * Get the descriptor for the specified property of the specified processor.
+     * 
+     * @param groupId
+     * @param id
+     * @param property
+     * @return 
+     */
+    PropertyDescriptorDTO getProcessorPropertyDescriptor(String groupId, String id, String property);
+    
     /**
      * Gets all the Processor transfer objects for this controller.
      *
@@ -972,6 +983,15 @@ public interface NiFiServiceFacade {
     ControllerServiceDTO getControllerService(String controllerServiceId);
     
     /**
+     * Get the descriptor for the specified property of the specified controller service.
+     * 
+     * @param id
+     * @param property
+     * @return 
+     */
+    PropertyDescriptorDTO getControllerServicePropertyDescriptor(String id, String property);
+    
+    /**
      * Gets the references for specified controller service.
      * 
      * @param controllerServiceId
@@ -1058,6 +1078,15 @@ public interface NiFiServiceFacade {
      * @return 
      */
     ReportingTaskDTO getReportingTask(String reportingTaskId);
+    
+    /**
+     * Get the descriptor for the specified property of the specified reporting task.
+     * 
+     * @param id
+     * @param property
+     * @return 
+     */
+    PropertyDescriptorDTO getReportingTaskPropertyDescriptor(String id, String property);
     
     /**
      * Updates the specified reporting task.

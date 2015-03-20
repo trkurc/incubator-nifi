@@ -153,6 +153,8 @@ import org.apache.nifi.web.util.SnippetUtils;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -160,6 +162,7 @@ import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
+import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.dao.ControllerServiceDAO;
 import org.apache.nifi.web.dao.ReportingTaskDAO;
@@ -1733,6 +1736,19 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public PropertyDescriptorDTO getProcessorPropertyDescriptor(String groupId, String id, String property) {
+        final ProcessorNode processor = processorDAO.getProcessor(groupId, id);
+        PropertyDescriptor descriptor = processor.getPropertyDescriptor(property);
+        
+        // return an invalid descriptor if the processor doesn't suppor this property
+        if (descriptor == null) {
+            descriptor = new PropertyDescriptor.Builder().name(property).addValidator(Validator.INVALID).dynamic(true).build();
+        }
+        
+        return dtoFactory.createPropertyDescriptorDto(descriptor);
+    }
+
+    @Override
     public StatusHistoryDTO getProcessorStatusHistory(String groupId, String id) {
         return controllerFacade.getProcessorStatusHistory(groupId, id);
     }
@@ -2039,6 +2055,19 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public PropertyDescriptorDTO getControllerServicePropertyDescriptor(String id, String property) {
+        final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(id);
+        PropertyDescriptor descriptor = controllerService.getControllerServiceImplementation().getPropertyDescriptor(property);
+        
+        // return an invalid descriptor if the controller service doesn't support this property
+        if (descriptor == null) {
+            descriptor = new PropertyDescriptor.Builder().name(property).addValidator(Validator.INVALID).dynamic(true).build();
+        }
+        
+        return dtoFactory.createPropertyDescriptorDto(descriptor);
+    }
+    
+    @Override
     public Set<ControllerServiceReferencingComponentDTO> getControllerServiceReferencingComponents(String controllerServiceId) {
         final ControllerServiceNode service = controllerServiceDAO.getControllerService(controllerServiceId);
         return dtoFactory.createControllerServiceReferencingComponentsDto(service.getReferences());
@@ -2058,6 +2087,19 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return dtoFactory.createReportingTaskDto(reportingTaskDAO.getReportingTask(reportingTaskId));
     }
 
+    @Override
+    public PropertyDescriptorDTO getReportingTaskPropertyDescriptor(String id, String property) {
+        final ReportingTaskNode reportingTask = reportingTaskDAO.getReportingTask(id);
+        PropertyDescriptor descriptor = reportingTask.getReportingTask().getPropertyDescriptor(property);
+        
+        // return an invalid descriptor if the reporting task doesn't support this property
+        if (descriptor == null) {
+            descriptor = new PropertyDescriptor.Builder().name(property).addValidator(Validator.INVALID).dynamic(true).build();
+        }
+        
+        return dtoFactory.createPropertyDescriptorDto(descriptor);
+    }
+    
     @Override
     public StatusHistoryDTO getProcessGroupStatusHistory(String groupId) {
         return controllerFacade.getProcessGroupStatusHistory(groupId);

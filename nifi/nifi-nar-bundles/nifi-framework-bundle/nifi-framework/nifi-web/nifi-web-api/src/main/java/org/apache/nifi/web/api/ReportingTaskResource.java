@@ -55,7 +55,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.ui.extension.UiExtension;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
 import org.apache.nifi.web.UiExtensionType;
+import static org.apache.nifi.web.api.ApplicationResource.CLIENT_ID;
+import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
+import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ReportingTasksEntity;
 import org.apache.nifi.web.util.Availability;
@@ -148,7 +151,7 @@ public class ReportingTaskResource extends ApplicationResource {
      */
     @GET
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("{availability}")
+    @Path("/{availability}")
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @TypeHint(ReportingTasksEntity.class)
     public Response getReportingTasks(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId, @PathParam("availability") String availability) {
@@ -192,7 +195,7 @@ public class ReportingTaskResource extends ApplicationResource {
     @POST
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("{availability}")
+    @Path("/{availability}")
     @PreAuthorize("hasRole('ROLE_DFM')")
     @TypeHint(ReportingTaskEntity.class)
     public Response createReportingTask(
@@ -233,7 +236,7 @@ public class ReportingTaskResource extends ApplicationResource {
     @POST
     @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("{availability}")
+    @Path("/{availability}")
     @PreAuthorize("hasRole('ROLE_DFM')")
     @TypeHint(ReportingTaskEntity.class)
     public Response createReportingTask(
@@ -320,7 +323,7 @@ public class ReportingTaskResource extends ApplicationResource {
      */
     @GET
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("{availability}/{id}")
+    @Path("/{availability}/{id}")
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @TypeHint(ReportingTaskEntity.class)
     public Response getReportingTask(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId, 
@@ -345,6 +348,55 @@ public class ReportingTaskResource extends ApplicationResource {
         entity.setRevision(revision);
         entity.setReportingTask(populateRemainingReportingTaskContent(availability, reportingTask));
 
+        return clusterContext(generateOkResponse(entity)).build();
+    }
+    
+    /**
+     * Returns the descriptor for the specified property.
+     * 
+     * @param clientId Optional client id. If the client id is not specified, a
+     * new one will be generated. This value (whether specified or generated) is
+     * included in the response.
+     * @param availability
+     * @param id The id of the reporting task.
+     * @param propertyName The property
+     * @return a propertyDescriptorEntity
+     */
+    @GET
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("/{availability}/{id}/descriptors")
+    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @TypeHint(PropertyDescriptorEntity.class)
+    public Response getPropertyDescriptor(
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId, 
+            @PathParam("availability") String availability, @PathParam("id") String id, 
+            @QueryParam("propertyName") String propertyName) {
+        
+        final Availability avail = parseAvailability(availability);
+        
+        // ensure the property name is specified
+        if (propertyName == null) {
+            throw new IllegalArgumentException("The property name must be specified.");
+        }
+        
+        // replicate if cluster manager and task is on node
+        if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
+            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        }
+        
+        // get the property descriptor
+        final PropertyDescriptorDTO descriptor = serviceFacade.getReportingTaskPropertyDescriptor(id, propertyName);
+        
+        // create the revision
+        final RevisionDTO revision = new RevisionDTO();
+        revision.setClientId(clientId.getClientId());
+        
+        // generate the response entity
+        final PropertyDescriptorEntity entity = new PropertyDescriptorEntity();
+        entity.setRevision(revision);
+        entity.setPropertyDescriptor(descriptor);
+        
+        // generate the response
         return clusterContext(generateOkResponse(entity)).build();
     }
     
@@ -385,7 +437,7 @@ public class ReportingTaskResource extends ApplicationResource {
     @PUT
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("{availability}/{id}")
+    @Path("/{availability}/{id}")
     @PreAuthorize("hasRole('ROLE_DFM')")
     @TypeHint(ReportingTaskEntity.class)
     public Response updateReportingTask(
@@ -464,7 +516,7 @@ public class ReportingTaskResource extends ApplicationResource {
     @PUT
     @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("{availability}/{id}")
+    @Path("/{availability}/{id}")
     @PreAuthorize("hasRole('ROLE_DFM')")
     @TypeHint(ReportingTaskEntity.class)
     public Response updateReportingTask(
@@ -544,7 +596,7 @@ public class ReportingTaskResource extends ApplicationResource {
      */
     @DELETE
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("{availability}/{id}")
+    @Path("/{availability}/{id}")
     @PreAuthorize("hasRole('ROLE_DFM')")
     @TypeHint(ReportingTaskEntity.class)
     public Response removeReportingTask(
