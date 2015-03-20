@@ -66,7 +66,7 @@ import org.apache.nifi.web.util.ClientResponseUtils;
  * Implements the NiFiWebContext interface to support a context in both
  * standalone and clustered environments.
  */
-public class StandardConfigurationContext implements ConfigurationContext {
+public class StandardConfigurationContext implements NiFiWebConfigurationContext {
 
     private static final Logger logger = LoggerFactory.getLogger(StandardConfigurationContext.class);
     public static final String CLIENT_ID_PARAM = "clientId";
@@ -86,7 +86,7 @@ public class StandardConfigurationContext implements ConfigurationContext {
 
     @Override
     @PreAuthorize("hasAnyRole('ROLE_DFM')")
-    public void saveActions(final RequestContext requestContext, final Collection<ConfigurationAction> configurationActions) {
+    public void saveActions(final NiFiWebRequestContext requestContext, final Collection<ConfigurationAction> configurationActions) {
         Objects.requireNonNull(configurationActions, "Actions cannot be null.");
 
         Component componentType = null;
@@ -170,7 +170,7 @@ public class StandardConfigurationContext implements ConfigurationContext {
     }
 
     @Override
-    public ComponentDetails getComponentDetails(final RequestContext requestContext) throws ResourceNotFoundException, ClusterRequestException {
+    public ComponentDetails getComponentDetails(final NiFiWebRequestContext requestContext) throws ResourceNotFoundException, ClusterRequestException {
         final String id = requestContext.getId();
 
         if (StringUtils.isBlank(id)) {
@@ -203,7 +203,7 @@ public class StandardConfigurationContext implements ConfigurationContext {
 
     @Override
     @PreAuthorize("hasAnyRole('ROLE_DFM')")
-    public ComponentDetails setAnnotationData(final ConfigurationRequestContext requestContext, final String annotationData)
+    public ComponentDetails setAnnotationData(final NiFiWebConfigurationRequestContext requestContext, final String annotationData)
             throws ResourceNotFoundException, InvalidRevisionException, ClusterRequestException {
 
         final String id = requestContext.getId();
@@ -232,13 +232,13 @@ public class StandardConfigurationContext implements ConfigurationContext {
     }
 
     private interface ComponentFacade {
-        ComponentDetails getComponentDetails(RequestContext requestContext);
-        ComponentDetails setAnnotationData(ConfigurationRequestContext requestContext, String annotationData);
+        ComponentDetails getComponentDetails(NiFiWebRequestContext requestContext);
+        ComponentDetails setAnnotationData(NiFiWebConfigurationRequestContext requestContext, String annotationData);
     }
     
     private class ProcessorFacade implements ComponentFacade {
         @Override
-        public ComponentDetails getComponentDetails(final RequestContext requestContext) {
+        public ComponentDetails getComponentDetails(final NiFiWebRequestContext requestContext) {
             final String id = requestContext.getId();
             
             final ProcessorDTO processor;
@@ -274,7 +274,7 @@ public class StandardConfigurationContext implements ConfigurationContext {
         }
 
         @Override
-        public ComponentDetails setAnnotationData(final ConfigurationRequestContext requestContext, final String annotationData) {
+        public ComponentDetails setAnnotationData(final NiFiWebConfigurationRequestContext requestContext, final String annotationData) {
             final Revision revision = requestContext.getRevision();
             final String id = requestContext.getId();
             
@@ -349,7 +349,7 @@ public class StandardConfigurationContext implements ConfigurationContext {
      * @param config
      * @return
      */
-    private Map<String, String> getHeaders(final RequestContext config) {
+    private Map<String, String> getHeaders(final NiFiWebRequestContext config) {
         final Map<String, String> headers = new HashMap<>();
         headers.put("Accept", "application/json,application/xml");
         if (StringUtils.isNotBlank(config.getProxiedEntitiesChain())) {

@@ -73,6 +73,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.ui.extension.UiExtension;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
 import org.apache.nifi.web.UiExtensionType;
+import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
+import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.codehaus.enunciate.jaxrs.TypeHint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -385,6 +387,51 @@ public class ProcessorResource extends ApplicationResource {
         entity.setRevision(revision);
         entity.setStatusHistory(processorStatusHistory);
 
+        // generate the response
+        return clusterContext(generateOkResponse(entity)).build();
+    }
+    
+    /**
+     * Returns the descriptor for the specified property.
+     * 
+     * @param clientId Optional client id. If the client id is not specified, a
+     * new one will be generated. This value (whether specified or generated) is
+     * included in the response.
+     * @param id The id of the processor
+     * @param propertyName The property
+     * @return a propertyDescriptorEntity
+     */
+    @GET
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("/{id}/descriptors")
+    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @TypeHint(PropertyDescriptorEntity.class)
+    public Response getPropertyDescriptor(
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId, 
+            @PathParam("id") String id, @QueryParam("propertyName") String propertyName) {
+        
+        // ensure the property name is specified
+        if (propertyName == null) {
+            throw new IllegalArgumentException("The property name must be specified.");
+        }
+        
+        // replicate if cluster manager
+        if (properties.isClusterManager()) {
+            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        }
+        
+        // get the property descriptor
+        final PropertyDescriptorDTO descriptor = serviceFacade.getProcessorPropertyDescriptor(groupId, id, propertyName);
+        
+        // create the revision
+        final RevisionDTO revision = new RevisionDTO();
+        revision.setClientId(clientId.getClientId());
+        
+        // generate the response entity
+        final PropertyDescriptorEntity entity = new PropertyDescriptorEntity();
+        entity.setRevision(revision);
+        entity.setPropertyDescriptor(descriptor);
+        
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
     }

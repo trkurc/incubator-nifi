@@ -17,9 +17,9 @@
 package org.apache.nifi.web;
 
 /**
- * Context around about a configuration request.
+ * Contextual details required to make a configuration request from a UI extension.
  */
-public interface ConfigurationRequestContext extends RequestContext {
+public interface NiFiWebConfigurationRequestContext extends NiFiWebRequestContext {
 
     /**
      * @return the revision

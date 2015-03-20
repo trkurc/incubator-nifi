@@ -31,10 +31,20 @@ public class UiExtension {
         this.contextPath = contextPath;
     }
 
+    /**
+     * The type of this UI extension.
+     * 
+     * @return 
+     */
     public UiExtensionType getExtensionType() {
         return extensionType;
     }
 
+    /**
+     * The context path of this UI extenion.
+     * 
+     * @return 
+     */
     public String getContextPath() {
         return contextPath;
     }

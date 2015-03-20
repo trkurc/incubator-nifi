@@ -57,11 +57,14 @@ import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.ui.extension.UiExtension;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
 import org.apache.nifi.web.UiExtensionType;
+import static org.apache.nifi.web.api.ApplicationResource.CLIENT_ID;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
+import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
+import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.util.Availability;
 import org.codehaus.enunciate.jaxrs.TypeHint;
 import org.slf4j.Logger;
@@ -108,7 +111,7 @@ public class ControllerServiceResource extends ApplicationResource {
         if (uiExtensionMapping.hasUiExtension(controllerService.getType())) {
             final List<UiExtension> uiExtensions = uiExtensionMapping.getUiExtension(controllerService.getType());
             for (final UiExtension uiExtension : uiExtensions) {
-                if (UiExtensionType.ProcessorConfiguration.equals(uiExtension.getExtensionType())) {
+                if (UiExtensionType.ControllerServiceConfiguration.equals(uiExtension.getExtensionType())) {
                     controllerService.setCustomUiUrl(uiExtension.getContextPath() + "/configure");
                 }
             }
@@ -152,7 +155,7 @@ public class ControllerServiceResource extends ApplicationResource {
      */
     @GET
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("{availability}")
+    @Path("/{availability}")
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @TypeHint(ControllerServicesEntity.class)
     public Response getControllerServices(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId, @PathParam("availability") String availability) {
@@ -196,7 +199,7 @@ public class ControllerServiceResource extends ApplicationResource {
     @POST
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("{availability}")
+    @Path("/{availability}")
     @PreAuthorize("hasRole('ROLE_DFM')")
     @TypeHint(ControllerServiceEntity.class)
     public Response createControllerService(
@@ -237,7 +240,7 @@ public class ControllerServiceResource extends ApplicationResource {
     @POST
     @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("{availability}")
+    @Path("/{availability}")
     @PreAuthorize("hasRole('ROLE_DFM')")
     @TypeHint(ControllerServiceEntity.class)
     public Response createControllerService(
@@ -324,7 +327,7 @@ public class ControllerServiceResource extends ApplicationResource {
      */
     @GET
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("{availability}/{id}")
+    @Path("/{availability}/{id}")
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @TypeHint(ControllerServiceEntity.class)
     public Response getControllerService(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId, 
@@ -353,6 +356,55 @@ public class ControllerServiceResource extends ApplicationResource {
     }
     
     /**
+     * Returns the descriptor for the specified property.
+     * 
+     * @param clientId Optional client id. If the client id is not specified, a
+     * new one will be generated. This value (whether specified or generated) is
+     * included in the response.
+     * @param availability
+     * @param id The id of the controller service.
+     * @param propertyName The property
+     * @return a propertyDescriptorEntity
+     */
+    @GET
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("/{availability}/{id}/descriptors")
+    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @TypeHint(PropertyDescriptorEntity.class)
+    public Response getPropertyDescriptor(
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId, 
+            @PathParam("availability") String availability, @PathParam("id") String id, 
+            @QueryParam("propertyName") String propertyName) {
+        
+        final Availability avail = parseAvailability(availability);
+        
+        // ensure the property name is specified
+        if (propertyName == null) {
+            throw new IllegalArgumentException("The property name must be specified.");
+        }
+        
+        // replicate if cluster manager and service is on node
+        if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
+            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        }
+        
+        // get the property descriptor
+        final PropertyDescriptorDTO descriptor = serviceFacade.getControllerServicePropertyDescriptor(id, propertyName);
+        
+        // create the revision
+        final RevisionDTO revision = new RevisionDTO();
+        revision.setClientId(clientId.getClientId());
+        
+        // generate the response entity
+        final PropertyDescriptorEntity entity = new PropertyDescriptorEntity();
+        entity.setRevision(revision);
+        entity.setPropertyDescriptor(descriptor);
+        
+        // generate the response
+        return clusterContext(generateOkResponse(entity)).build();
+    }
+    
+    /**
      * Retrieves the references of the specified controller service.
      *
      * @param clientId Optional client id. If the client id is not specified, a
@@ -365,7 +417,7 @@ public class ControllerServiceResource extends ApplicationResource {
      */
     @GET
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("{availability}/{id}/references")
+    @Path("/{availability}/{id}/references")
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @TypeHint(ControllerServiceEntity.class)
     public Response getControllerServiceReferences(
@@ -414,7 +466,7 @@ public class ControllerServiceResource extends ApplicationResource {
     @PUT
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("{availability}/{id}/references")
+    @Path("/{availability}/{id}/references")
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @TypeHint(ControllerServiceEntity.class)
     public Response updateControllerServiceReferences(
@@ -529,7 +581,7 @@ public class ControllerServiceResource extends ApplicationResource {
     @PUT
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("{availability}/{id}")
+    @Path("/{availability}/{id}")
     @PreAuthorize("hasRole('ROLE_DFM')")
     @TypeHint(ControllerServiceEntity.class)
     public Response updateControllerService(
@@ -607,7 +659,7 @@ public class ControllerServiceResource extends ApplicationResource {
     @PUT
     @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("{availability}/{id}")
+    @Path("/{availability}/{id}")
     @PreAuthorize("hasRole('ROLE_DFM')")
     @TypeHint(ControllerServiceEntity.class)
     public Response updateControllerService(
@@ -687,7 +739,7 @@ public class ControllerServiceResource extends ApplicationResource {
      */
     @DELETE
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("{availability}/{id}")
+    @Path("/{availability}/{id}")
     @PreAuthorize("hasRole('ROLE_DFM')")
     @TypeHint(ControllerServiceEntity.class)
     public Response removeControllerService(

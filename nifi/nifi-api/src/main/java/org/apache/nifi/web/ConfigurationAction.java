@@ -17,7 +17,7 @@
 package org.apache.nifi.web;
 
 /**
- *
+ * An action that represents the configuration of a component.
  */
 public class ConfigurationAction {
 
