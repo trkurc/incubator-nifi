@@ -1964,6 +1964,25 @@ public final class DtoFactory {
         return copy;
     }
 
+    
+    public ControllerServiceDTO copy(final ControllerServiceDTO original) {
+        final ControllerServiceDTO copy = new ControllerServiceDTO();
+        copy.setAnnotationData(original.getAnnotationData());
+        copy.setAvailability(original.getAvailability());
+        copy.setComments(original.getComments());
+        copy.setCustomUiUrl(original.getCustomUiUrl());
+        copy.setDescriptors(copy(original.getDescriptors()));
+        copy.setId(original.getId());
+        copy.setName(original.getName());
+        copy.setProperties(copy(original.getProperties()));
+        copy.setReferencingComponents(copy(original.getReferencingComponents()));
+        copy.setState(original.getState());
+        copy.setType(original.getType());
+        copy.setUri(original.getUri());
+        copy.setValidationErrors(copy(original.getValidationErrors()));
+        return copy;
+    }
+    
     public FunnelDTO copy(final FunnelDTO original) {
         final FunnelDTO copy = new FunnelDTO();
         copy.setId(original.getId());

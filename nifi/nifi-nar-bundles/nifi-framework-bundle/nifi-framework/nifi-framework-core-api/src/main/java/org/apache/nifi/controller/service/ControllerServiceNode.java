@@ -18,7 +18,6 @@ package org.apache.nifi.controller.service;
 
 import java.util.Set;
 
-import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerService;
 

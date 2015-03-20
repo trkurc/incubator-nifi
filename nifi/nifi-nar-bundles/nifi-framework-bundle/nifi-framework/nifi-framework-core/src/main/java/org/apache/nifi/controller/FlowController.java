@@ -176,6 +176,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
+import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
@@ -1394,6 +1395,23 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             validateSnippetContents(requireNonNull(group), dto);
 
             //
+            // Instantiate Controller Services
+            //
+            for ( final ControllerServiceDTO controllerServiceDTO : dto.getControllerServices() ) {
+                final ControllerServiceNode serviceNode = createControllerService(controllerServiceDTO.getType(), controllerServiceDTO.getId(), true);
+                
+                serviceNode.setAnnotationData(controllerServiceDTO.getAnnotationData());
+                serviceNode.setComments(controllerServiceDTO.getComments());
+                serviceNode.setName(controllerServiceDTO.getName());
+                
+                for ( final Map.Entry<String, String> entry : controllerServiceDTO.getProperties().entrySet() ) {
+                    if ( entry.getValue() != null ) {
+                        serviceNode.setProperty(entry.getKey(), entry.getValue());
+                    }
+                }
+            }
+            
+            //
             // Instantiate the labels
             //
             for (final LabelDTO labelDTO : dto.getLabels()) {
@@ -1403,7 +1421,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                     label.setSize(new Size(labelDTO.getWidth(), labelDTO.getHeight()));
                 }
 
-                // TODO: Update the label's "style"
+                label.setStyle(labelDTO.getStyle());
                 group.addLabel(label);
             }
 
@@ -1729,13 +1747,17 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         // validate that all Processor Types and Prioritizer Types are valid
-        final List<String> processorClasses = new ArrayList<>();
+        final Set<String> processorClasses = new HashSet<>();
         for (final Class<?> c : ExtensionManager.getExtensions(Processor.class)) {
             processorClasses.add(c.getName());
         }
-        final List<String> prioritizerClasses = new ArrayList<>();
+        final Set<String> prioritizerClasses = new HashSet<>();
         for (final Class<?> c : ExtensionManager.getExtensions(FlowFilePrioritizer.class)) {
             prioritizerClasses.add(c.getName());
+        }
+        final Set<String> controllerServiceClasses = new HashSet<>();
+        for (final Class<?> c : ExtensionManager.getExtensions(ControllerService.class)) {
+            controllerServiceClasses.add(c.getName());
         }
 
         final Set<ProcessorDTO> allProcs = new HashSet<>();
@@ -1750,6 +1772,15 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         for (final ProcessorDTO proc : allProcs) {
             if (!processorClasses.contains(proc.getType())) {
                 throw new IllegalStateException("Invalid Processor Type: " + proc.getType());
+            }
+        }
+        
+        final Set<ControllerServiceDTO> controllerServices = templateContents.getControllerServices();
+        if (controllerServices != null) {
+            for (final ControllerServiceDTO service : controllerServices) {
+                if (!controllerServiceClasses.contains(service.getType())) {
+                    throw new IllegalStateException("Invalid Controller Service Type: " + service.getType());
+                }
             }
         }
 
