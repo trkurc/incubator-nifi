@@ -14,13 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.ui.extension;
+package org.apache.nifi.web;
 
 /**
- * Types of UI extensions.
+ * Context around about a configuration request.
  */
-public enum UiExtensionType {
-    ProcessorConfiguration,
-    ControllerServiceConfiguration,
-    ReportingTaskConfiguration
+public interface ConfigurationRequestContext extends RequestContext {
+
+    /**
+     * @return the revision
+     */
+    Revision getRevision();
+
 }

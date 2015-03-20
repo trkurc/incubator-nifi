@@ -22,12 +22,10 @@ import org.apache.nifi.controller.ControllerService;
 
 /**
  * NiFi web context providing limited access to dataflow configuration for
- * processor custom UIs.
+ * component custom UIs.
  */
-public interface UiExtensionRequestContext {
+public interface ConfigurationContext {
     
-    public static final String ATTRIBUTE_KEY = "ui-extension-request-context";
-
     /**
      * Gets the ControllerService for the specified identifier. If a
      * corresponding service cannot be found, null is returned. If this NiFi is
@@ -50,9 +48,10 @@ public interface UiExtensionRequestContext {
      * been applied to the flow, we cannot revert them because of a failure to
      * insert an audit record.
      *
+     * @param requestContext
      * @param actions
      */
-    void saveActions(Collection<ConfigurationAction> actions);
+    void saveActions(RequestContext requestContext, Collection<ConfigurationAction> actions);
 
     /**
      * Gets the current user dn. Returns null if no user is found.
@@ -71,6 +70,7 @@ public interface UiExtensionRequestContext {
     /**
      * Sets the annotation data for the underlying component.
      * 
+     * @param configurationContext
      * @param annotationData
      * @return the configuration for the underlying component
      * @throws ResourceNotFoundException if the underlying component does not exit
@@ -80,16 +80,17 @@ public interface UiExtensionRequestContext {
      * set for the underlying component. This exception will only be thrown when operating
      * in a cluster.
      */
-    ComponentConfiguration setAnnotationData(String annotationData) throws ResourceNotFoundException, InvalidRevisionException, ClusterRequestException;
+    ComponentDetails setAnnotationData(ConfigurationRequestContext configurationContext, String annotationData) throws ResourceNotFoundException, InvalidRevisionException, ClusterRequestException;
     
     /**
-     * Gets the configuration for the underlying component (including annotation data).
+     * Gets the details for the underlying component (including configuration, validation errors, and annotation data).
      * 
+     * @param requestContext
      * @return the configuration for the underlying component
      * @throws ResourceNotFoundException if the underlying component does not exit
      * @throws ClusterRequestException if the underlying component was unable to be
      * retrieved from the cluster. This exception will only be thrown when
      * operating in a cluster.
      */
-    ComponentConfiguration getComponentDetails() throws ResourceNotFoundException, ClusterRequestException;
+    ComponentDetails getComponentDetails(RequestContext requestContext) throws ResourceNotFoundException, ClusterRequestException;
 }

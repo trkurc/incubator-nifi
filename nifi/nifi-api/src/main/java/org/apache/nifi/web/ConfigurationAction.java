@@ -21,14 +21,47 @@ package org.apache.nifi.web;
  */
 public class ConfigurationAction {
 
+    private final String id;
+    private final String name;
+    private final String type;
     private final String field;
     private final String previousValue;
     private final String value;
 
     private ConfigurationAction(final Builder builder) {
+        this.id = builder.id;
+        this.name = builder.name;
+        this.type = builder.type;
         this.field = builder.field;
         this.previousValue = builder.previousValue;
         this.value = builder.value;
+    }
+
+    /**
+     * The id of the component being modified.
+     * 
+     * @return 
+     */
+    public String getId() {
+        return id;
+    }
+
+    /**
+     * The name of the component being modified.
+     * 
+     * @return 
+     */
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * The type of the component being modified.
+     * 
+     * @return 
+     */
+    public String getType() {
+        return type;
     }
 
     /**
@@ -60,10 +93,28 @@ public class ConfigurationAction {
 
     public static class Builder {
 
+        private String id;
+        private String name;
+        private String type;
         private String field;
         private String previousValue;
         private String value;
 
+        public Builder id(final String id) {
+            this.id = id;
+            return this;
+        }
+        
+        public Builder name(final String name) {
+            this.name = name;
+            return this;
+        }
+        
+        public Builder type(final String type) {
+            this.type = type;
+            return this;
+        }
+        
         public Builder field(final String field) {
             this.field = field;
             return this;

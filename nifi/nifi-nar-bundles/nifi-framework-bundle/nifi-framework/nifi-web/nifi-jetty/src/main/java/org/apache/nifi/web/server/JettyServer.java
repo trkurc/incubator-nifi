@@ -52,6 +52,10 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiWebContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.ui.extension.UiExtension;
+import org.apache.nifi.ui.extension.UiExtensionMapping;
+import org.apache.nifi.web.ConfigurationContext;
+import org.apache.nifi.web.UiExtensionType;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.HttpConfiguration;
@@ -99,9 +103,14 @@ public class JettyServer implements NiFiServer {
     private ExtensionMapping extensionMapping;
     private WebAppContext webApiContext;
     private WebAppContext webDocsContext;
-    private Collection<WebAppContext> customUiWebContexts;
     private final NiFiProperties props;
 
+    private UiExtensionMapping uiExtensions;
+    private Collection<WebAppContext> uiExtensionWebContexts;
+    
+    @Deprecated
+    private Collection<WebAppContext> customUiWebContexts;
+    
     /**
      * Creates and configures a new Jetty instance.
      *
@@ -192,19 +201,32 @@ public class JettyServer implements NiFiServer {
 
         // handlers for each war and init params for the web api
         final HandlerCollection handlers = new HandlerCollection();
-        final Map<String, String> initParams = new HashMap<>();
         final ClassLoader frameworkClassLoader = getClass().getClassLoader();
         final ClassLoader jettyClassLoader = frameworkClassLoader.getParent();
 
+        @Deprecated
+        final Map<String, String> initParams = new HashMap<>();
+        
         // deploy the other wars
         if (CollectionUtils.isNotEmpty(otherWars)) {
+            // hold onto to the web contexts for all ui extensions
             customUiWebContexts = new ArrayList<>();
+            uiExtensionWebContexts = new ArrayList<>();
+            
+            // ui extension organized by component type
+            final Map<String, List<UiExtension>> uiExtensionsByType = new HashMap<>();
             for (File war : otherWars) {
                 // see if this war is a custom processor ui
+                @Deprecated
                 List<String> customUiProcessorTypes = getCustomUiProcessorTypes(war);
 
+                // identify all known extension types in the war
+                final Map<UiExtensionType, List<String>> uiExtensionInWar = new HashMap<>();
+                identifyUiExtensions(uiExtensionInWar, war);
+                
                 // only include wars that are for custom processor ui's
-                if (CollectionUtils.isNotEmpty(customUiProcessorTypes)) {
+                if (CollectionUtils.isNotEmpty(customUiProcessorTypes) || !uiExtensionInWar.isEmpty()) {
+                    // get the context path
                     String warName = StringUtils.substringBeforeLast(war.getName(), ".");
                     String warContextPath = String.format("/%s", warName);
 
@@ -220,18 +242,53 @@ public class JettyServer implements NiFiServer {
                     WebAppContext customUiContext = loadWar(war, warContextPath, narClassLoaderForWar);
 
                     // hold on to a reference to all custom ui web app contexts
-                    customUiWebContexts.add(customUiContext);
+                    if (CollectionUtils.isNotEmpty(customUiProcessorTypes)) {
+                        customUiWebContexts.add(customUiContext);
+                    } else {
+                        uiExtensionWebContexts.add(customUiContext);
+                    }
 
-                    // include custom ui web context in the handlers
-                    handlers.addHandler(customUiContext);
+                    // create the ui extensions
+                    for (final Map.Entry<UiExtensionType, List<String>> entry : uiExtensionInWar.entrySet()) {
+                        final UiExtensionType extensionType = entry.getKey();
+                        final List<String> componentTypes = entry.getValue();
 
+                        // consider each type identified
+                        for (final String componentType : componentTypes) {
+                            logger.info(String.format("Loading UI extension [%s, %s] for %s", extensionType, warContextPath, componentTypes));
+                            
+                            // record the extension definition
+                            final UiExtension uiExtension = new UiExtension(extensionType, warContextPath);
+                            
+                            // create if this is the first extension for this component type
+                            List<UiExtension> uiExtensionsForType = uiExtensionsByType.get(componentType);
+                            if (uiExtensionsForType == null) {
+                                uiExtensionsForType = new ArrayList<>();
+                                uiExtensionsByType.put(componentType, uiExtensionsForType);
+                            }
+                            
+                            // record this extension
+                            uiExtensionsForType.add(uiExtension);
+                        }
+                    }
+                    
                     // add the initialization paramters
+                    // @Deprecated
                     for (String customUiProcessorType : customUiProcessorTypes) {
                         // map the processor type to the custom ui path
                         initParams.put(customUiProcessorType, warContextPath);
                     }
+                    
+                    // include custom ui web context in the handlers
+                    handlers.addHandler(customUiContext);
                 }
+                
             }
+            
+            // record all ui extensions
+            uiExtensions = new UiExtensionMapping(uiExtensionsByType);
+        } else {
+            uiExtensions = new UiExtensionMapping(Collections.EMPTY_MAP);
         }
 
         // load the web ui app
@@ -291,12 +348,57 @@ public class JettyServer implements NiFiServer {
         return wars;
     }
 
+    private void readUiExtensions(final Map<UiExtensionType, List<String>> uiExtensions, final UiExtensionType uiExtensionType, final JarFile jarFile, final JarEntry jarEntry) throws IOException {
+        if (jarEntry == null) {
+            return;
+        }
+        
+        // get an input stream for the nifi-processor configuration file
+        BufferedReader in = new BufferedReader(new InputStreamReader(jarFile.getInputStream(jarEntry)));
+
+        // read in each configured type
+        String componentType;
+        while ((componentType = in.readLine()) != null) {
+            // ensure the line isn't blank
+            if (StringUtils.isNotBlank(componentType)) {
+                List<String> extensions = uiExtensions.get(uiExtensionType);
+                
+                // if there are currently no extensions for this type create it
+                if (extensions == null) {
+                    extensions = new ArrayList<>();
+                    uiExtensions.put(uiExtensionType, extensions);
+                }
+                
+                // add the specified type
+                extensions.add(componentType);
+            }
+        }
+    }
+    
+    /**
+     * Identifies all known UI extensions and stores them in the specified map.
+     * 
+     * @param uiExtensions
+     * @param warFile 
+     */
+    private void identifyUiExtensions(final Map<UiExtensionType, List<String>> uiExtensions, final File warFile) {
+        try (final JarFile jarFile = new JarFile(warFile)) {
+            // locate the ui extensions
+            readUiExtensions(uiExtensions, UiExtensionType.ProcessorConfiguration, jarFile, jarFile.getJarEntry("META-INF/nifi-processor-configuration"));
+            readUiExtensions(uiExtensions, UiExtensionType.ControllerServiceConfiguration, jarFile, jarFile.getJarEntry("META-INF/nifi-controller-service-configuration"));
+            readUiExtensions(uiExtensions, UiExtensionType.ReportingTaskConfiguration, jarFile, jarFile.getJarEntry("META-INF/nifi-reporting-task-configuration"));
+        } catch (IOException ioe) {
+            logger.warn(String.format("Unable to inspect %s for a UI extensions.", warFile));
+        }
+    }
+    
     /**
      * Loads the processor types that the specified war file is a custom UI for.
      *
      * @param warFile
      * @return
      */
+    @Deprecated
     private List<String> getCustomUiProcessorTypes(final File warFile) {
         List<String> processorTypes = new ArrayList<>();
         JarFile jarFile = null;
@@ -534,20 +636,47 @@ public class JettyServer implements NiFiServer {
                     }
                 }
             }
+            
+            // ensure web api is loaded and inject the ui extensions
+            if (webApiContext != null) {
+                final ServletContext webApiServletContext = webApiContext.getServletHandler().getServletContext();
+                webApiServletContext.setAttribute("nifi-ui-extensions", uiExtensions);
+            }
 
             // ensure the appropriate wars deployed successfully before injecting the NiFi context and security filters - 
             // this must be done after starting the server (and ensuring there were no start up failures)
+            // @Deprecated
             if (webApiContext != null && CollectionUtils.isNotEmpty(customUiWebContexts)) {
                 final ServletContext webApiServletContext = webApiContext.getServletHandler().getServletContext();
                 final WebApplicationContext webApplicationContext = WebApplicationContextUtils.getRequiredWebApplicationContext(webApiServletContext);
-                final NiFiWebContext NiFiWebContext = webApplicationContext.getBean("nifiWebContext", NiFiWebContext.class);
+                final NiFiWebContext niFiWebContext = webApplicationContext.getBean("nifiWebContext", NiFiWebContext.class);
 
                 for (final WebAppContext customUiContext : customUiWebContexts) {
                     // set the NiFi context in each custom ui servlet context
                     final ServletContext customUiServletContext = customUiContext.getServletHandler().getServletContext();
-                    customUiServletContext.setAttribute("nifi-web-context", NiFiWebContext);
+                    customUiServletContext.setAttribute("nifi-web-context", niFiWebContext);
 
                     // add the security filter to any custom ui wars
+                    final FilterHolder securityFilter = webApiContext.getServletHandler().getFilter("springSecurityFilterChain");
+                    if (securityFilter != null) {
+                        customUiContext.addFilter(securityFilter, "/*", EnumSet.of(DispatcherType.REQUEST));
+                    }
+                }
+            }
+            
+            // ensure the appropriate wars deployed successfully before injecting the NiFi context and security filters - 
+            // this must be done after starting the server (and ensuring there were no start up failures)
+            if (webApiContext != null && CollectionUtils.isNotEmpty(uiExtensionWebContexts)) {
+                final ServletContext webApiServletContext = webApiContext.getServletHandler().getServletContext();
+                final WebApplicationContext webApplicationContext = WebApplicationContextUtils.getRequiredWebApplicationContext(webApiServletContext);
+                final ConfigurationContext configurationContext = webApplicationContext.getBean("nifiWebConfigurationContext", ConfigurationContext.class);
+                
+                for (final WebAppContext customUiContext : uiExtensionWebContexts) {
+                    // set the NiFi context in each custom ui servlet context
+                    final ServletContext customUiServletContext = customUiContext.getServletHandler().getServletContext();
+                    customUiServletContext.setAttribute("nifi-web-configuration-context", configurationContext);
+                    
+                    // add the security filter to any ui extensions wars
                     final FilterHolder securityFilter = webApiContext.getServletHandler().getFilter("springSecurityFilterChain");
                     if (securityFilter != null) {
                         customUiContext.addFilter(securityFilter, "/*", EnumSet.of(DispatcherType.REQUEST));

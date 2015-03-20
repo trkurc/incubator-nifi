@@ -30,7 +30,6 @@
         <module>nifi-web-docs</module>
         <module>nifi-web-ui</module>
         <module>nifi-jetty</module>
-        <module>nifi-ui-extension-controller</module>
         <module>nifi-ui-extension</module>
     </modules>
     <dependencyManagement>

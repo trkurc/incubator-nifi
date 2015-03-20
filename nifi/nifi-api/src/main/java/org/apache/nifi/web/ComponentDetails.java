@@ -22,7 +22,7 @@ import java.util.Map;
 /**
  *
  */
-public class ComponentConfiguration {
+public class ComponentDetails {
 
     private final String id;
     private final String name;
@@ -32,7 +32,7 @@ public class ComponentConfiguration {
     private final Map<String, String> properties;
     private final Collection<String> validationErrors;
 
-    private ComponentConfiguration(final Builder builder) {
+    private ComponentDetails(final Builder builder) {
         this.id = builder.id;
         this.name = builder.name;
         this.type = builder.type;
@@ -115,8 +115,8 @@ public class ComponentConfiguration {
             return this;
         }
 
-        public ComponentConfiguration build() {
-            return new ComponentConfiguration(this);
+        public ComponentDetails build() {
+            return new ComponentDetails(this);
         }
     }
 }

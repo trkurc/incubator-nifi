@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.ui.extension;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -23,9 +24,9 @@ import java.util.Map;
  */
 public class UiExtensionMapping {
 
-    private final Map<String, UiExtension> uiExtensions;
+    private final Map<String, List<UiExtension>> uiExtensions;
 
-    public UiExtensionMapping(Map<String, UiExtension> uiExtensions) {
+    public UiExtensionMapping(Map<String, List<UiExtension>> uiExtensions) {
         this.uiExtensions = uiExtensions;
     }
 
@@ -33,7 +34,7 @@ public class UiExtensionMapping {
         return uiExtensions.containsKey(type);
     }
     
-    public UiExtension getUiExtension(final String type) {
+    public List<UiExtension> getUiExtension(final String type) {
         return uiExtensions.get(type);
     }
     

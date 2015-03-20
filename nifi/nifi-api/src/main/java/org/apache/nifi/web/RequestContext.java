@@ -14,18 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.controller;
-
-import org.apache.nifi.ui.extension.UiExtensionType;
-import org.apache.nifi.web.Revision;
+package org.apache.nifi.web;
 
 /**
- * A UI extensions request object containing required items to querying the controller.
+ * Contextual details required to make a request from a UI extension.
  */
-public interface UiExtensionControllerRequest {
+public interface RequestContext {
 
     /**
-     * The type of UI extension supports.
+     * Returns the type of UI extension is making the request.
      * 
      * @return 
      */
@@ -40,14 +37,11 @@ public interface UiExtensionControllerRequest {
     String getScheme();
 
     /**
-     * @return the component ID
+     * The id of the component.
+     * 
+     * @return the ID
      */
     String getId();
-
-    /**
-     * @return the revision
-     */
-    Revision getRevision();
 
     /**
      * Returns the proxied entities chain. The format of the chain is as

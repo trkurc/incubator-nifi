@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -51,6 +52,9 @@ import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.ui.extension.UiExtension;
+import org.apache.nifi.ui.extension.UiExtensionMapping;
+import org.apache.nifi.web.UiExtensionType;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ReportingTasksEntity;
@@ -70,7 +74,10 @@ public class ReportingTaskResource extends ApplicationResource {
     private NiFiServiceFacade serviceFacade;
     private WebClusterManager clusterManager;
     private NiFiProperties properties;
-
+    
+    @Context
+    private ServletContext servletContext;
+    
     /**
      * Populates the uri for the specified reporting task.
      * 
@@ -91,6 +98,18 @@ public class ReportingTaskResource extends ApplicationResource {
         // populate the reporting task href
         reportingTask.setUri(generateResourceUri("controller", "reporting-tasks", availability, reportingTask.getId()));
         reportingTask.setAvailability(availability);
+        
+        // see if this processor has any ui extensions
+        final UiExtensionMapping uiExtensionMapping = (UiExtensionMapping) servletContext.getAttribute("nifi-ui-extensions");
+        if (uiExtensionMapping.hasUiExtension(reportingTask.getType())) {
+            final List<UiExtension> uiExtensions = uiExtensionMapping.getUiExtension(reportingTask.getType());
+            for (final UiExtension uiExtension : uiExtensions) {
+                if (UiExtensionType.ProcessorConfiguration.equals(uiExtension.getExtensionType())) {
+                    reportingTask.setCustomUiUrl(uiExtension.getContextPath() + "/configure");
+                }
+            }
+        }
+        
         return reportingTask;
     }
 

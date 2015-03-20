@@ -70,6 +70,9 @@ import org.apache.nifi.web.api.request.IntegerParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.ui.extension.UiExtension;
+import org.apache.nifi.ui.extension.UiExtensionMapping;
+import org.apache.nifi.web.UiExtensionType;
 import org.codehaus.enunciate.jaxrs.TypeHint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -118,9 +121,21 @@ public class ProcessorResource extends ApplicationResource {
         // get the config details and see if there is a custom ui for this processor type
         ProcessorConfigDTO config = processor.getConfig();
         if (config != null) {
+            // consider legacy custom ui fist
             String customUiUrl = servletContext.getInitParameter(processor.getType());
             if (StringUtils.isNotBlank(customUiUrl)) {
                 config.setCustomUiUrl(customUiUrl);
+            } else {
+                // see if this processor has any ui extensions
+                final UiExtensionMapping uiExtensionMapping = (UiExtensionMapping) servletContext.getAttribute("nifi-ui-extensions");
+                if (uiExtensionMapping.hasUiExtension(processor.getType())) {
+                    final List<UiExtension> uiExtensions = uiExtensionMapping.getUiExtension(processor.getType());
+                    for (final UiExtension uiExtension : uiExtensions) {
+                        if (UiExtensionType.ProcessorConfiguration.equals(uiExtension.getExtensionType())) {
+                            config.setCustomUiUrl(uiExtension.getContextPath() + "/configure");
+                        }
+                    }
+                }
             }
         }
 

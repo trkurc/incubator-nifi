@@ -39,6 +39,7 @@ public class ReportingTaskDTO extends NiFiComponentDTO {
 	private Map<String, String> properties;
     private Map<String, PropertyDescriptorDTO> descriptors;
  
+    private String customUiUrl;
     private String annotationData;
     
     private Collection<String> validationErrors;
@@ -156,6 +157,20 @@ public class ReportingTaskDTO extends NiFiComponentDTO {
 	public void setDescriptors(Map<String, PropertyDescriptorDTO> descriptors) {
 		this.descriptors = descriptors;
 	}
+
+    /**
+     * Returns the URL for this reporting task custom configuration UI
+     * if applicable. Null otherwise.
+     *
+     * @return
+     */
+    public String getCustomUiUrl() {
+        return customUiUrl;
+    }
+
+    public void setCustomUiUrl(String customUiUrl) {
+        this.customUiUrl = customUiUrl;
+    }
 
 	/**
 	 * The currently configured annotation data for the reporting task

@@ -36,6 +36,7 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
     private Map<String, String> properties;
     private Map<String, PropertyDescriptorDTO> descriptors;
  
+    private String customUiUrl;
     private String annotationData;
     
     private Set<ControllerServiceReferencingComponentDTO> referencingComponents;
@@ -130,6 +131,20 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
 
     public void setDescriptors(Map<String, PropertyDescriptorDTO> descriptors) {
         this.descriptors = descriptors;
+    }
+
+    /**
+     * Returns the URL for this controller services custom configuration UI
+     * if applicable. Null otherwise.
+     *
+     * @return
+     */
+    public String getCustomUiUrl() {
+        return customUiUrl;
+    }
+
+    public void setCustomUiUrl(String customUiUrl) {
+        this.customUiUrl = customUiUrl;
     }
 
     /**

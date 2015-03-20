@@ -14,29 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.ui.extension;
-
-import org.apache.nifi.web.UiExtensionType;
+package org.apache.nifi.web;
 
 /**
- * Information about a UI extension required to be invoked.
+ * Types of UI extensions.
  */
-public class UiExtension {
-
-    private final UiExtensionType extensionType;
-    private final String contextPath;
-
-    public UiExtension(final UiExtensionType extensionType, final String contextPath) {
-        this.extensionType = extensionType;
-        this.contextPath = contextPath;
-    }
-
-    public UiExtensionType getExtensionType() {
-        return extensionType;
-    }
-
-    public String getContextPath() {
-        return contextPath;
-    }
-
+public enum UiExtensionType {
+    ProcessorConfiguration,
+    ControllerServiceConfiguration,
+    ReportingTaskConfiguration
 }

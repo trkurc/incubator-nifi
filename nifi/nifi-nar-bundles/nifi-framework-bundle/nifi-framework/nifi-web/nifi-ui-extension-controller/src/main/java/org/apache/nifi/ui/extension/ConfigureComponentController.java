@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.ui.extension;
 
+import org.apache.nifi.web.UiExtensionType;
 import org.apache.nifi.web.controller.UiExtensionControllerRequest;
 import org.apache.nifi.web.controller.UiExtensionControllerFacade;
 import java.io.IOException;
@@ -36,7 +37,7 @@ import org.apache.nifi.action.component.details.ExtensionDetails;
 import org.apache.nifi.action.details.ConfigureDetails;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.web.ClusterRequestException;
-import org.apache.nifi.web.ComponentConfiguration;
+import org.apache.nifi.web.ComponentDetails;
 import org.apache.nifi.web.ConfigurationAction;
 import org.apache.nifi.web.InvalidRevisionException;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -83,7 +84,7 @@ public class ConfigureComponentController extends HttpServlet {
         final UiExtensionControllerRequest config = getRequestContextConig(extensionType, request);
         
         // get the initial component details
-        final ComponentConfiguration details = controllerFacade.getComponentDetails(config);
+        final ComponentDetails details = controllerFacade.getComponentDetails(config);
         
         // lookup a viewer for the content
         final String uiExtensionUri = servletContext.getInitParameter(type);
@@ -153,12 +154,12 @@ public class ConfigureComponentController extends HttpServlet {
             }
 
             @Override
-            public ComponentConfiguration setAnnotationData(String annotationData) throws ClusterRequestException, InvalidRevisionException, ResourceNotFoundException{
+            public ComponentDetails setAnnotationData(String annotationData) throws ClusterRequestException, InvalidRevisionException, ResourceNotFoundException{
                 return controllerFacade.setAnnotationData(config, annotationData);
             }
 
             @Override
-            public ComponentConfiguration getComponentDetails() throws ClusterRequestException, ResourceNotFoundException {
+            public ComponentDetails getComponentDetails() throws ClusterRequestException, ResourceNotFoundException {
                 return controllerFacade.getComponentDetails(config);
             }
         });

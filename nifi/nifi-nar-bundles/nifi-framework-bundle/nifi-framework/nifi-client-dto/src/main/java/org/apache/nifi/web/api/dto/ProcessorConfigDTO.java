@@ -207,7 +207,8 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * Whether of not this processor has a custom UI.
+     * Returns the URL for this processors custom configuration UI
+     * if applicable. Null otherwise.
      *
      * @return
      */

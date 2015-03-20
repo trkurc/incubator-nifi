@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -53,6 +54,9 @@ import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.ui.extension.UiExtension;
+import org.apache.nifi.ui.extension.UiExtensionMapping;
+import org.apache.nifi.web.UiExtensionType;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
@@ -75,6 +79,9 @@ public class ControllerServiceResource extends ApplicationResource {
     private WebClusterManager clusterManager;
     private NiFiProperties properties;
 
+    @Context
+    private ServletContext servletContext;
+    
     /**
      * Populates the uri for the specified controller service.
      * 
@@ -95,6 +102,18 @@ public class ControllerServiceResource extends ApplicationResource {
         // populate the controller service href
         controllerService.setUri(generateResourceUri("controller", "controller-services", availability, controllerService.getId()));
         controllerService.setAvailability(availability);
+        
+        // see if this processor has any ui extensions
+        final UiExtensionMapping uiExtensionMapping = (UiExtensionMapping) servletContext.getAttribute("nifi-ui-extensions");
+        if (uiExtensionMapping.hasUiExtension(controllerService.getType())) {
+            final List<UiExtension> uiExtensions = uiExtensionMapping.getUiExtension(controllerService.getType());
+            for (final UiExtension uiExtension : uiExtensions) {
+                if (UiExtensionType.ProcessorConfiguration.equals(uiExtension.getExtensionType())) {
+                    controllerService.setCustomUiUrl(uiExtension.getContextPath() + "/configure");
+                }
+            }
+        }
+        
         return controllerService;
     }
 
