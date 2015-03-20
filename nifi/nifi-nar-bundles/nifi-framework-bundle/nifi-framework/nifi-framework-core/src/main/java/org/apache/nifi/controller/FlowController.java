@@ -1403,6 +1403,13 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 serviceNode.setAnnotationData(controllerServiceDTO.getAnnotationData());
                 serviceNode.setComments(controllerServiceDTO.getComments());
                 serviceNode.setName(controllerServiceDTO.getName());
+            }
+            
+            // configure controller services. We do this after creating all of them in case 1 service
+            // references another service.
+            for ( final ControllerServiceDTO controllerServiceDTO : dto.getControllerServices() ) {
+                final String serviceId = controllerServiceDTO.getId();
+                final ControllerServiceNode serviceNode = getControllerServiceNode(serviceId);
                 
                 for ( final Map.Entry<String, String> entry : controllerServiceDTO.getProperties().entrySet() ) {
                     if ( entry.getValue() != null ) {

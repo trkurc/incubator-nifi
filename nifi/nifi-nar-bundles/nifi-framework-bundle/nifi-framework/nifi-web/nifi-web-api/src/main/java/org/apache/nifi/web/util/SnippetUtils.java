@@ -365,6 +365,10 @@ public final class SnippetUtils {
                     for ( final PropertyDescriptorDTO descriptor : descriptors.values() ) {
                         if ( descriptor.isIdentifiesControllerService() ) {
                             final String currentServiceId = properties.get(descriptor.getName());
+                            if ( currentServiceId == null ) {
+                                continue;
+                            }
+                            
                             final String newServiceId = serviceIdMap.get(currentServiceId);
                             properties.put(descriptor.getName(), newServiceId);
                         }
