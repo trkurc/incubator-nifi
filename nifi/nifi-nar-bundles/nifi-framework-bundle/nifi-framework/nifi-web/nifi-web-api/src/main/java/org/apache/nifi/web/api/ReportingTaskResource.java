@@ -104,7 +104,7 @@ public class ReportingTaskResource extends ApplicationResource {
         if (uiExtensionMapping.hasUiExtension(reportingTask.getType())) {
             final List<UiExtension> uiExtensions = uiExtensionMapping.getUiExtension(reportingTask.getType());
             for (final UiExtension uiExtension : uiExtensions) {
-                if (UiExtensionType.ProcessorConfiguration.equals(uiExtension.getExtensionType())) {
+                if (UiExtensionType.ReportingTaskConfiguration.equals(uiExtension.getExtensionType())) {
                     reportingTask.setCustomUiUrl(uiExtension.getContextPath() + "/configure");
                 }
             }
