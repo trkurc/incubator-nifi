@@ -51,6 +51,11 @@
     font-size: 12px;
 }
 
+.content-label {
+    font-weight: bold;
+    margin-right: 8px;
+}
+
 .pointer {
     cursor: pointer;
 }

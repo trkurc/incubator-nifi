@@ -33,14 +33,16 @@ public interface ViewableContent {
     }
     
     /**
-     * The stream to the viewable content.
+     * The stream to the viewable content. The data stream can only be read once so
+     * an extension can call this method or getContent.
      * 
      * @return 
      */
     InputStream getContentStream();
 
     /**
-     * Gets the content as a string.
+     * Gets the content as a string. The data stream can only be read once so
+     * an extension can call this method or getContentStream.
      * 
      * @return 
      * @throws java.io.IOException 

@@ -87,6 +87,6 @@
     <body class="message-pane">
         <div id="view-as-label">View as</div>
         <div id="view-as" class="pointer button-normal"></div>
-        <div id="content-filename"><span style="font-weight: bold;">Filename</span> ${filename}</div>
-        <div id="content-type"><span style="font-weight: bold;">Content type</span> ${contentType}</div>
+        <div id="content-filename"><span class="content-label">filename</span>${filename}</div>
+        <div id="content-type"><span class="content-label">content type</span>${contentType}</div>
         <div class="message-pane-message-box">
