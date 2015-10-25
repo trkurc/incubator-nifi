@@ -16,19 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.apache.nifi.processors.standard.util.JmsProperties.ACKNOWLEDGEMENT_MODE;
-import static org.apache.nifi.processors.standard.util.JmsProperties.ACK_MODE_CLIENT;
-import static org.apache.nifi.processors.standard.util.JmsProperties.BATCH_SIZE;
-import static org.apache.nifi.processors.standard.util.JmsProperties.CLIENT_ID_PREFIX;
-import static org.apache.nifi.processors.standard.util.JmsProperties.DESTINATION_NAME;
-import static org.apache.nifi.processors.standard.util.JmsProperties.JMS_PROPS_TO_ATTRIBUTES;
-import static org.apache.nifi.processors.standard.util.JmsProperties.JMS_PROVIDER;
-import static org.apache.nifi.processors.standard.util.JmsProperties.MESSAGE_SELECTOR;
-import static org.apache.nifi.processors.standard.util.JmsProperties.PASSWORD;
-import static org.apache.nifi.processors.standard.util.JmsProperties.TIMEOUT;
-import static org.apache.nifi.processors.standard.util.JmsProperties.URL;
-import static org.apache.nifi.processors.standard.util.JmsProperties.USERNAME;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -62,6 +49,20 @@ import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.util.IntegerHolder;
 import org.apache.nifi.util.StopWatch;
 
+import static org.apache.nifi.processors.standard.util.JmsProperties.SSL_CONTEXT_SERVICE;
+import static org.apache.nifi.processors.standard.util.JmsProperties.ACKNOWLEDGEMENT_MODE;
+import static org.apache.nifi.processors.standard.util.JmsProperties.ACK_MODE_CLIENT;
+import static org.apache.nifi.processors.standard.util.JmsProperties.BATCH_SIZE;
+import static org.apache.nifi.processors.standard.util.JmsProperties.CLIENT_ID_PREFIX;
+import static org.apache.nifi.processors.standard.util.JmsProperties.DESTINATION_NAME;
+import static org.apache.nifi.processors.standard.util.JmsProperties.JMS_PROPS_TO_ATTRIBUTES;
+import static org.apache.nifi.processors.standard.util.JmsProperties.JMS_PROVIDER;
+import static org.apache.nifi.processors.standard.util.JmsProperties.MESSAGE_SELECTOR;
+import static org.apache.nifi.processors.standard.util.JmsProperties.PASSWORD;
+import static org.apache.nifi.processors.standard.util.JmsProperties.TIMEOUT;
+import static org.apache.nifi.processors.standard.util.JmsProperties.URL;
+import static org.apache.nifi.processors.standard.util.JmsProperties.USERNAME;
+
 public abstract class JmsConsumer extends AbstractProcessor {
 
     public static final String MAP_MESSAGE_PREFIX = "jms.mapmessage.";
@@ -87,6 +88,7 @@ public abstract class JmsConsumer extends AbstractProcessor {
         descriptors.add(BATCH_SIZE);
         descriptors.add(USERNAME);
         descriptors.add(PASSWORD);
+        descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(ACKNOWLEDGEMENT_MODE);
         descriptors.add(MESSAGE_SELECTOR);
         descriptors.add(JMS_PROPS_TO_ATTRIBUTES);

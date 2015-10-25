@@ -16,22 +16,6 @@
  */
 package org.apache.nifi.processors.standard.util;
 
-import static org.apache.nifi.processors.standard.util.JmsProperties.ACKNOWLEDGEMENT_MODE;
-import static org.apache.nifi.processors.standard.util.JmsProperties.ACK_MODE_AUTO;
-import static org.apache.nifi.processors.standard.util.JmsProperties.ACTIVEMQ_PROVIDER;
-import static org.apache.nifi.processors.standard.util.JmsProperties.CLIENT_ID_PREFIX;
-import static org.apache.nifi.processors.standard.util.JmsProperties.DESTINATION_NAME;
-import static org.apache.nifi.processors.standard.util.JmsProperties.DESTINATION_TYPE;
-import static org.apache.nifi.processors.standard.util.JmsProperties.DESTINATION_TYPE_QUEUE;
-import static org.apache.nifi.processors.standard.util.JmsProperties.DESTINATION_TYPE_TOPIC;
-import static org.apache.nifi.processors.standard.util.JmsProperties.DURABLE_SUBSCRIPTION;
-import static org.apache.nifi.processors.standard.util.JmsProperties.JMS_PROVIDER;
-import static org.apache.nifi.processors.standard.util.JmsProperties.MESSAGE_SELECTOR;
-import static org.apache.nifi.processors.standard.util.JmsProperties.PASSWORD;
-import static org.apache.nifi.processors.standard.util.JmsProperties.TIMEOUT;
-import static org.apache.nifi.processors.standard.util.JmsProperties.URL;
-import static org.apache.nifi.processors.standard.util.JmsProperties.USERNAME;
-
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.Enumeration;
@@ -57,12 +41,31 @@ import javax.jms.StreamMessage;
 import javax.jms.TextMessage;
 import javax.jms.Topic;
 
+import org.apache.activemq.ActiveMQSslConnectionFactory;
+import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.processor.ProcessContext;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.command.ActiveMQQueue;
 import org.apache.activemq.command.ActiveMQTopic;
+
+import static org.apache.nifi.processors.standard.util.JmsProperties.SSL_CONTEXT_SERVICE;
+import static org.apache.nifi.processors.standard.util.JmsProperties.ACKNOWLEDGEMENT_MODE;
+import static org.apache.nifi.processors.standard.util.JmsProperties.ACK_MODE_AUTO;
+import static org.apache.nifi.processors.standard.util.JmsProperties.ACTIVEMQ_PROVIDER;
+import static org.apache.nifi.processors.standard.util.JmsProperties.CLIENT_ID_PREFIX;
+import static org.apache.nifi.processors.standard.util.JmsProperties.DESTINATION_NAME;
+import static org.apache.nifi.processors.standard.util.JmsProperties.DESTINATION_TYPE;
+import static org.apache.nifi.processors.standard.util.JmsProperties.DESTINATION_TYPE_QUEUE;
+import static org.apache.nifi.processors.standard.util.JmsProperties.DESTINATION_TYPE_TOPIC;
+import static org.apache.nifi.processors.standard.util.JmsProperties.DURABLE_SUBSCRIPTION;
+import static org.apache.nifi.processors.standard.util.JmsProperties.JMS_PROVIDER;
+import static org.apache.nifi.processors.standard.util.JmsProperties.MESSAGE_SELECTOR;
+import static org.apache.nifi.processors.standard.util.JmsProperties.PASSWORD;
+import static org.apache.nifi.processors.standard.util.JmsProperties.TIMEOUT;
+import static org.apache.nifi.processors.standard.util.JmsProperties.URL;
+import static org.apache.nifi.processors.standard.util.JmsProperties.USERNAME;
 
 public class JmsFactory {
 
@@ -351,13 +354,47 @@ public class JmsFactory {
         final String url = context.getProperty(URL).getValue();
         final int timeoutMillis = context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         final String provider = context.getProperty(JMS_PROVIDER).getValue();
-        return createConnectionFactory(url, timeoutMillis, provider);
+        if (url.contains("ssl://")) {
+            final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+            if (sslContextService == null) {
+                throw new NullPointerException("Attempting to initiate SSL JMS connection and SSL Context is not set.");
+            }
+            return createSslConnectionFactory(url, timeoutMillis, provider, sslContextService.getKeyStoreFile(),
+                    sslContextService.getKeyStorePassword(), sslContextService.getTrustStoreFile(), sslContextService.getTrustStorePassword());
+        } else {
+            return createConnectionFactory(url, timeoutMillis, provider);
+        }
     }
 
     public static ConnectionFactory createConnectionFactory(final String url, final int timeoutMillis, final String jmsProvider) throws JMSException {
         switch (jmsProvider) {
             case ACTIVEMQ_PROVIDER: {
                 final ActiveMQConnectionFactory factory = new ActiveMQConnectionFactory(url);
+                factory.setSendTimeout(timeoutMillis);
+                return factory;
+            }
+            default:
+                throw new IllegalArgumentException("Unknown JMS Provider: " + jmsProvider);
+        }
+    }
+
+    public static ConnectionFactory createSslConnectionFactory(final String url, final int timeoutMillis, final String jmsProvider,
+                            final String keystore, final String keystorePassword, final String truststore, final String truststorePassword) throws JMSException {
+        switch (jmsProvider) {
+            case ACTIVEMQ_PROVIDER: {
+                final ActiveMQSslConnectionFactory factory = new ActiveMQSslConnectionFactory(url);
+                try {
+                    factory.setKeyStore(keystore);
+                } catch (Exception e) {
+                    throw new JMSException("Problem Setting the KeyStore: " + e.getMessage());
+                }
+                factory.setKeyStorePassword(keystorePassword);
+                try {
+                    factory.setTrustStore(truststore);
+                } catch (Exception e) {
+                    throw new JMSException("Problem Setting the TrustStore: " + e.getMessage());
+                }
+                factory.setTrustStorePassword(truststorePassword);
                 factory.setSendTimeout(timeoutMillis);
                 return factory;
             }
