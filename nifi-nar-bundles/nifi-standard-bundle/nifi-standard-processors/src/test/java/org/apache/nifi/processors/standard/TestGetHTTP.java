@@ -323,7 +323,7 @@ public class TestGetHTTP {
             controller = TestRunners.newTestRunner(GetHTTP.class);
             useSSLContextService();
 
-            controller.setProperty(GetHTTP.CONNECTION_TIMEOUT, "5 secs");
+            controller.setProperty(GetHTTP.CONNECTION_TIMEOUT, "100 secs");
             controller.setProperty(GetHTTP.URL, destination);
             controller.setProperty(GetHTTP.FILENAME, "testFile");
             controller.setProperty(GetHTTP.ACCEPT_CONTENT_TYPE, "application/json");
