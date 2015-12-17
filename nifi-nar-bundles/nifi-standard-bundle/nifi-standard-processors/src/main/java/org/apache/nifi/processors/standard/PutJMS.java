@@ -252,7 +252,8 @@ public class PutJMS extends AbstractProcessor {
                 logger.info("Sent {} to JMS Server and transferred to 'success'", new Object[]{flowFileDescription});
             } catch (JMSException e) {
                 logger.error("Failed to commit JMS Session due to {}; rolling back session", new Object[]{e});
-                session.rollback();
+                session.transfer(flowFiles, REL_FAILURE);
+                context.yield();
                 wrappedProducer.close(logger);
             }
         } finally {
