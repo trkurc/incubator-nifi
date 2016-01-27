@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -61,14 +62,14 @@ import com.amazonaws.services.s3.model.StorageClass;
 public class ITPutS3Object extends AbstractS3IT {
 
     final static String TEST_ENDPOINT = "https://endpoint.com";
-//    final static String TEST_TRANSIT_URI = "https://" + BUCKET_NAME + ".endpoint.com";
+    //    final static String TEST_TRANSIT_URI = "https://" + BUCKET_NAME + ".endpoint.com";
     final static String TEST_PARTSIZE_STRING = "50 mb";
     final static Long   TEST_PARTSIZE_LONG = 50L * 1024L * 1024L;
 
     final static Long S3_MINIMUM_PART_SIZE = 50L * 1024L * 1024L;
     final static Long S3_MAXIMUM_OBJECT_SIZE = 5L * 1024L * 1024L * 1024L;
 
-    final static RegularExpression reS3ETag = new RegularExpression("[0-9a-fA-f]{32,32}");
+    final static Pattern reS3ETag = Pattern.compile("[0-9a-fA-f]{32,32}");
 
     @Test
     public void testSimplePut() throws IOException {
@@ -347,7 +348,7 @@ public class ITPutS3Object extends AbstractS3IT {
     @Test
     public void testEndpointOverride() {
         // remove leading "/" from filename to avoid duplicate separators
-        final String TESTKEY = AbstractS3Test.SAMPLE_FILE_RESOURCE_NAME.substring(1);
+        final String TESTKEY = AbstractS3IT.SAMPLE_FILE_RESOURCE_NAME.substring(1);
 
         final PutS3Object processor = new TestablePutS3Object();
         final TestRunner runner = TestRunners.newTestRunner(processor);
@@ -378,7 +379,7 @@ public class ITPutS3Object extends AbstractS3IT {
         runner.setProperty(PutS3Object.REGION, REGION);
         runner.setProperty(PutS3Object.MULTIPART_PART_SIZE, TEST_PARTSIZE_STRING);
         runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
-        runner.setProperty(PutS3Object.KEY, AbstractS3Test.SAMPLE_FILE_RESOURCE_NAME);
+        runner.setProperty(PutS3Object.KEY, AbstractS3IT.SAMPLE_FILE_RESOURCE_NAME);
 
         Assert.assertEquals(BUCKET_NAME, context.getProperty(PutS3Object.BUCKET).toString());
         Assert.assertEquals(SAMPLE_FILE_RESOURCE_NAME, context.getProperty(PutS3Object.KEY).evaluateAttributeExpressions().toString());
@@ -572,7 +573,7 @@ public class ITPutS3Object extends AbstractS3IT {
         Assert.assertEquals(FILE1_NAME, ff1.getAttribute(CoreAttributes.FILENAME.key()));
         Assert.assertEquals(BUCKET_NAME, ff1.getAttribute(PutS3Object.S3_BUCKET_KEY));
         Assert.assertEquals(FILE1_NAME, ff1.getAttribute(PutS3Object.S3_OBJECT_KEY));
-        Assert.assertTrue(reS3ETag.matches(ff1.getAttribute(PutS3Object.S3_ETAG_ATTR_KEY)));
+        Assert.assertTrue(reS3ETag.matcher(ff1.getAttribute(PutS3Object.S3_ETAG_ATTR_KEY)).matches());
         Assert.assertEquals(tempByteCount, ff1.getSize());
     }
 
@@ -618,7 +619,7 @@ public class ITPutS3Object extends AbstractS3IT {
         Assert.assertEquals(FILE1_NAME, ff1.getAttribute(CoreAttributes.FILENAME.key()));
         Assert.assertEquals(BUCKET_NAME, ff1.getAttribute(PutS3Object.S3_BUCKET_KEY));
         Assert.assertEquals(FILE1_NAME, ff1.getAttribute(PutS3Object.S3_OBJECT_KEY));
-        Assert.assertTrue(reS3ETag.matches(ff1.getAttribute(PutS3Object.S3_ETAG_ATTR_KEY)));
+        Assert.assertTrue(reS3ETag.matcher(ff1.getAttribute(PutS3Object.S3_ETAG_ATTR_KEY)).matches());
         Assert.assertEquals(tempByteCount, ff1.getSize());
     }
 
@@ -658,7 +659,7 @@ public class ITPutS3Object extends AbstractS3IT {
         Assert.assertEquals(FILE1_NAME, ff1.getAttribute(CoreAttributes.FILENAME.key()));
         Assert.assertEquals(BUCKET_NAME, ff1.getAttribute(PutS3Object.S3_BUCKET_KEY));
         Assert.assertEquals(FILE1_NAME, ff1.getAttribute(PutS3Object.S3_OBJECT_KEY));
-        Assert.assertTrue(reS3ETag.matches(ff1.getAttribute(PutS3Object.S3_ETAG_ATTR_KEY)));
+        Assert.assertTrue(reS3ETag.matcher(ff1.getAttribute(PutS3Object.S3_ETAG_ATTR_KEY)).matches());
         Assert.assertTrue(ff1.getSize() > S3_MAXIMUM_OBJECT_SIZE);
     }
 
