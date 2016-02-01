@@ -32,23 +32,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
-import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
-import com.amazonaws.services.s3.model.CompleteMultipartUploadResult;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
-import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
-import com.amazonaws.services.s3.model.MultipartUpload;
-import com.amazonaws.services.s3.model.MultipartUploadListing;
-import com.amazonaws.services.s3.model.PartETag;
-import com.amazonaws.services.s3.model.UploadPartRequest;
-import com.amazonaws.services.s3.model.UploadPartResult;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -71,11 +61,22 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
 import com.amazonaws.services.s3.model.AccessControlList;
+import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
+import com.amazonaws.services.s3.model.CompleteMultipartUploadResult;
+import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
+import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
+import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
+import com.amazonaws.services.s3.model.MultipartUpload;
+import com.amazonaws.services.s3.model.MultipartUploadListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PartETag;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.StorageClass;
+import com.amazonaws.services.s3.model.UploadPartRequest;
+import com.amazonaws.services.s3.model.UploadPartResult;
 
 @SupportsBatching
 @SeeAlso({FetchS3Object.class, DeleteS3Object.class})
@@ -225,42 +226,57 @@ public class PutS3Object extends AbstractS3Processor {
         return false;
     }
 
-    protected synchronized MultipartState getLocalState(final AmazonS3Client s3, final String bucket,
+    protected synchronized MultipartState getLocalStateIfInS3(final AmazonS3Client s3, final String bucket,
                                                         final String s3ObjectKey) throws IOException {
+        MultipartState currState = getLocalState(s3ObjectKey);
+        if (currState == null) {
+            return null;
+        }
+        if (localUploadExistsInS3(s3, bucket, currState)) {
+            getLogger().info("Local state for {} loaded with uploadId {} and {} partETags",
+                    new Object[]{s3ObjectKey, currState.getUploadId(), currState.getPartETags().size()});
+            return currState;
+        } else {
+            getLogger().info("Local state for {} with uploadId {} does not exist in S3, deleting local state",
+                    new Object[]{s3ObjectKey, currState.getUploadId()});
+            persistLocalState(s3ObjectKey, null);
+            return null;
+        }
+    }
+
+    protected synchronized MultipartState getLocalState(final String s3ObjectKey) throws IOException {
         // get local state if it exists
-        MultipartState currState = null;
         final File persistenceFile = getPersistenceFile();
+
         if (persistenceFile.exists()) {
+            final Properties props = new Properties();
             try (final FileInputStream fis = new FileInputStream(persistenceFile)) {
-                final Properties props = new Properties();
                 props.load(fis);
-                if (props.containsKey(s3ObjectKey)) {
-                    final String localSerialState = props.getProperty(s3ObjectKey);
-                    if (localSerialState != null) {
-                        currState = new MultipartState(localSerialState);
-                        if (localUploadExistsInS3(s3, bucket, currState)) {
-                            getLogger().info("Local state for {} loaded with uploadId {} and {} partETags",
-                                    new Object[]{s3ObjectKey, currState.getUploadId(), currState.getPartETags().size()});
-                        } else {
-                            getLogger().info("Local state for {} with uploadId {} does not exist in S3, deleting local state",
-                                    new Object[]{s3ObjectKey, currState.getUploadId()});
-                            persistLocalState(s3ObjectKey, null);
-                            currState = null;
-                        }
-                    }
-                }
             } catch (IOException ioe) {
                 getLogger().warn("Failed to recover local state for {} due to {}. Assuming no local state and " +
                         "restarting upload.", new Object[]{s3ObjectKey, ioe.getMessage()});
+                return null;
+            }
+            if (props.containsKey(s3ObjectKey)) {
+                final String localSerialState = props.getProperty(s3ObjectKey);
+                if (localSerialState != null) {
+                    try {
+                        return new MultipartState(localSerialState);
+                    } catch (final RuntimeException rte) {
+                        getLogger().warn("Failed to recover local state for {} due to corrupt data in state.", new Object[]{s3ObjectKey, rte.getMessage()});
+                        return null;
+                    }
+                }
             }
         }
-        return currState;
+        return null;
     }
 
     protected synchronized void persistLocalState(final String s3ObjectKey, final MultipartState currState) throws IOException {
         final String currStateStr = (currState == null) ? null : currState.toString();
         final File persistenceFile = getPersistenceFile();
         final File parentDir = persistenceFile.getParentFile();
+        currState.setTimestamp(System.currentTimeMillis());
         if (!parentDir.exists() && !parentDir.mkdirs()) {
             throw new IOException("Persistence directory (" + parentDir.getAbsolutePath() + ") does not exist and " +
                     "could not be created.");
@@ -300,6 +316,39 @@ public class PutS3Object extends AbstractS3Processor {
         persistLocalState(s3ObjectKey, null);
     }
 
+    private synchronized void ageoffLocalState(long ageCutoff) {
+        // get local state if it exists
+        final File persistenceFile = getPersistenceFile();
+        if (persistenceFile.exists()) {
+            Properties props = new Properties();
+            try (final FileInputStream fis = new FileInputStream(persistenceFile)) {
+                props.load(fis);
+            } catch (final IOException ioe) {
+                getLogger().warn("Failed to ageoff remove local state for due to {}",
+                        new Object[]{ioe.getMessage()});
+                return;
+            }
+            for (Entry<Object,Object> entry: props.entrySet()) {
+                final String key = (String) entry.getKey();
+                final String localSerialState = props.getProperty(key);
+                if (localSerialState != null) {
+                    final MultipartState state = new MultipartState(localSerialState);
+                    if (state.getTimestamp() < ageCutoff) {
+                        getLogger().warn("Removing local state for {} due to exceeding ageoff time",
+                                new Object[]{persistenceFile.getAbsolutePath()});
+                        try {
+                            removeLocalState(key);
+                        } catch (final IOException ioe) {
+                            getLogger().warn("Failed to remove local state for {} due to {}",
+                                    new Object[]{persistenceFile.getAbsolutePath(), ioe.getMessage()});
+
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         FlowFile flowFile = session.get();
@@ -328,6 +377,7 @@ public class PutS3Object extends AbstractS3Processor {
         /*
          * If necessary, run age off for existing uploads in AWS S3.
          */
+
         ageoffS3Uploads(context, s3, now);
 
         /*
@@ -410,7 +460,7 @@ public class PutS3Object extends AbstractS3Processor {
                             //------------------------------------------------------------
                             MultipartState currentState;
                             try {
-                                currentState = getLocalState(s3, bucket, cacheKey);
+                                currentState = getLocalStateIfInS3(s3, bucket, cacheKey);
                                 if (currentState != null) {
                                     if (currentState.getPartETags().size() > 0) {
                                         final PartETag lastETag = currentState.getPartETags().get(
@@ -612,6 +662,7 @@ public class PutS3Object extends AbstractS3Processor {
 
     }
 
+
     private final Lock s3BucketLock = new ReentrantLock();
     private final AtomicLong lastS3AgeOff = new AtomicLong(0L);
     private final DateFormat logFormat = new SimpleDateFormat();
@@ -627,6 +678,7 @@ public class PutS3Object extends AbstractS3Processor {
         final long ageoff_interval = context.getProperty(MULTIPART_S3_AGEOFF_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
         final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
         final Long maxAge = context.getProperty(MULTIPART_S3_MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+        final long ageCutoff = now - maxAge;
 
         final List<MultipartUpload> ageoffList = new ArrayList<>();
         if ((lastS3AgeOff.get() < now - ageoff_interval) && s3BucketLock.tryLock()) {
@@ -635,12 +687,14 @@ public class PutS3Object extends AbstractS3Processor {
                 ListMultipartUploadsRequest listRequest = new ListMultipartUploadsRequest(bucket);
                 MultipartUploadListing listing = s3.listMultipartUploads(listRequest);
                 for (MultipartUpload upload : listing.getMultipartUploads()) {
-                    Long uploadAge = now - upload.getInitiated().getTime();
-                    if (uploadAge > maxAge) {
+                    long uploadTime = upload.getInitiated().getTime();
+                    if (uploadTime < ageCutoff) {
                         ageoffList.add(upload);
                     }
                 }
 
+                // ageoff any local state
+                ageoffLocalState(ageCutoff);
                 lastS3AgeOff.set(System.currentTimeMillis());
             } catch(AmazonClientException e) {
                 getLogger().error("Error checking S3 Multipart Upload list for {}: {}",
@@ -672,6 +726,8 @@ public class PutS3Object extends AbstractS3Processor {
 
     protected static class MultipartState implements Serializable {
 
+        private static final long serialVersionUID = 9006072180563519740L;
+
         private static final String SEPARATOR = "#";
 
         private String _uploadId;
@@ -680,6 +736,7 @@ public class PutS3Object extends AbstractS3Processor {
         private Long _partSize;
         private StorageClass _storageClass;
         private Long _contentLength;
+        private Long _timestamp;
 
         public MultipartState() {
             _uploadId = "";
@@ -688,6 +745,7 @@ public class PutS3Object extends AbstractS3Processor {
             _partSize = 0L;
             _storageClass = StorageClass.Standard;
             _contentLength = 0L;
+            _timestamp = System.currentTimeMillis();
         }
 
         // create from a previous toString() result
@@ -705,6 +763,7 @@ public class PutS3Object extends AbstractS3Processor {
             _partSize = Long.parseLong(fields[3]);
             _storageClass = StorageClass.fromValue(fields[4]);
             _contentLength = Long.parseLong(fields[5]);
+            _timestamp = Long.parseLong(fields[6]);
         }
 
         public String getUploadId() {
@@ -755,6 +814,14 @@ public class PutS3Object extends AbstractS3Processor {
             _contentLength = length;
         }
 
+        public Long getTimestamp() {
+            return _timestamp;
+        }
+
+        public void setTimestamp(Long timestamp) {
+            _timestamp = timestamp;
+        }
+
         public String toString() {
             StringBuilder buf = new StringBuilder();
             buf.append(_uploadId).append(SEPARATOR)
@@ -773,7 +840,8 @@ public class PutS3Object extends AbstractS3Processor {
             buf.append(SEPARATOR)
                     .append(_partSize.toString()).append(SEPARATOR)
                     .append(_storageClass.toString()).append(SEPARATOR)
-                    .append(_contentLength.toString());
+                    .append(_contentLength.toString()).append(SEPARATOR)
+                    .append(_timestamp.toString());
             return buf.toString();
         }
     }
