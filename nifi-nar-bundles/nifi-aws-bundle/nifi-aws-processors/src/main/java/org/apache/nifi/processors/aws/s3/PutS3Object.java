@@ -377,7 +377,6 @@ public class PutS3Object extends AbstractS3Processor {
         /*
          * If necessary, run age off for existing uploads in AWS S3.
          */
-
         ageoffS3Uploads(context, s3, now);
 
         /*
@@ -461,6 +460,7 @@ public class PutS3Object extends AbstractS3Processor {
                             MultipartState currentState;
                             try {
                                 currentState = getLocalStateIfInS3(s3, bucket, cacheKey);
+
                                 if (currentState != null) {
                                     if (currentState.getPartETags().size() > 0) {
                                         final PartETag lastETag = currentState.getPartETags().get(
@@ -662,7 +662,6 @@ public class PutS3Object extends AbstractS3Processor {
 
     }
 
-
     private final Lock s3BucketLock = new ReentrantLock();
     private final AtomicLong lastS3AgeOff = new AtomicLong(0L);
     private final DateFormat logFormat = new SimpleDateFormat();
@@ -680,6 +679,7 @@ public class PutS3Object extends AbstractS3Processor {
         final Long maxAge = context.getProperty(MULTIPART_S3_MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
         final long ageCutoff = now - maxAge;
 
+
         final List<MultipartUpload> ageoffList = new ArrayList<>();
         if ((lastS3AgeOff.get() < now - ageoff_interval) && s3BucketLock.tryLock()) {
             try {
@@ -692,7 +692,6 @@ public class PutS3Object extends AbstractS3Processor {
                         ageoffList.add(upload);
                     }
                 }
-
                 // ageoff any local state
                 ageoffLocalState(ageCutoff);
                 lastS3AgeOff.set(System.currentTimeMillis());
@@ -725,7 +724,6 @@ public class PutS3Object extends AbstractS3Processor {
     }
 
     protected static class MultipartState implements Serializable {
-
         private static final long serialVersionUID = 9006072180563519740L;
 
         private static final String SEPARATOR = "#";
