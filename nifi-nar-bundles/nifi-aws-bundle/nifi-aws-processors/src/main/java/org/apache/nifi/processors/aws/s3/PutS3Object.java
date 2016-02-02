@@ -276,7 +276,6 @@ public class PutS3Object extends AbstractS3Processor {
         final String currStateStr = (currState == null) ? null : currState.toString();
         final File persistenceFile = getPersistenceFile();
         final File parentDir = persistenceFile.getParentFile();
-        currState.setTimestamp(System.currentTimeMillis());
         if (!parentDir.exists() && !parentDir.mkdirs()) {
             throw new IOException("Persistence directory (" + parentDir.getAbsolutePath() + ") does not exist and " +
                     "could not be created.");
@@ -288,6 +287,7 @@ public class PutS3Object extends AbstractS3Processor {
             }
         }
         if (currStateStr != null) {
+            currState.setTimestamp(System.currentTimeMillis());
             props.setProperty(s3ObjectKey, currStateStr);
         } else {
             props.remove(s3ObjectKey);
@@ -324,7 +324,7 @@ public class PutS3Object extends AbstractS3Processor {
             try (final FileInputStream fis = new FileInputStream(persistenceFile)) {
                 props.load(fis);
             } catch (final IOException ioe) {
-                getLogger().warn("Failed to ageoff remove local state for due to {}",
+                getLogger().warn("Failed to ageoff remove local state due to {}",
                         new Object[]{ioe.getMessage()});
                 return;
             }
@@ -335,12 +335,12 @@ public class PutS3Object extends AbstractS3Processor {
                     final MultipartState state = new MultipartState(localSerialState);
                     if (state.getTimestamp() < ageCutoff) {
                         getLogger().warn("Removing local state for {} due to exceeding ageoff time",
-                                new Object[]{persistenceFile.getAbsolutePath()});
+                                new Object[]{key});
                         try {
                             removeLocalState(key);
                         } catch (final IOException ioe) {
                             getLogger().warn("Failed to remove local state for {} due to {}",
-                                    new Object[]{persistenceFile.getAbsolutePath(), ioe.getMessage()});
+                                    new Object[]{key, ioe.getMessage()});
 
                         }
                     }
@@ -375,7 +375,7 @@ public class PutS3Object extends AbstractS3Processor {
         final long now = System.currentTimeMillis();
 
         /*
-         * If necessary, run age off for existing uploads in AWS S3.
+         * If necessary, run age off for existing uploads in AWS S3 and local state
          */
         ageoffS3Uploads(context, s3, now);
 
@@ -667,13 +667,13 @@ public class PutS3Object extends AbstractS3Processor {
     private final DateFormat logFormat = new SimpleDateFormat();
 
     protected void ageoffS3Uploads(final ProcessContext context, final AmazonS3Client s3, final long now) {
-        MultipartUploadListing oldUploads = getS3AgeoffList(context, s3, now);
+        MultipartUploadListing oldUploads = getS3AgeoffListAndAgeoffLocalState(context, s3, now);
         for (MultipartUpload upload : oldUploads.getMultipartUploads()) {
             abortS3MultipartUpload(s3, oldUploads.getBucketName(), upload);
         }
     }
 
-    protected MultipartUploadListing getS3AgeoffList(final ProcessContext context, final AmazonS3Client s3, final long now) {
+    protected MultipartUploadListing getS3AgeoffListAndAgeoffLocalState(final ProcessContext context, final AmazonS3Client s3, final long now) {
         final long ageoff_interval = context.getProperty(MULTIPART_S3_AGEOFF_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
         final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
         final Long maxAge = context.getProperty(MULTIPART_S3_MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS);

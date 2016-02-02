@@ -334,10 +334,11 @@ public class ITPutS3Object extends AbstractS3IT {
 
     @Test
     public void testStateToString() throws IOException, InitializationException {
-        final String target = "UID-test1234567890#10001#1/PartETag-1,2/PartETag-2,3/PartETag-3,4/PartETag-4#20002#REDUCED_REDUNDANCY#30003";
+        final String target = "UID-test1234567890#10001#1/PartETag-1,2/PartETag-2,3/PartETag-3,4/PartETag-4#20002#REDUCED_REDUNDANCY#30003#8675309";
         PutS3Object.MultipartState state2 = new PutS3Object.MultipartState();
         state2.setUploadId("UID-test1234567890");
         state2.setFilePosition(10001L);
+        state2.setTimestamp(8675309L);
         for (Integer partNum = 1; partNum < 5; partNum++) {
             state2.addPartETag(new PartETag(partNum, "PartETag-" + partNum.toString()));
         }
@@ -743,13 +744,13 @@ public class ITPutS3Object extends AbstractS3IT {
         // initiation times in whole seconds.
         Long now = System.currentTimeMillis();
 
-        MultipartUploadListing uploadList = processor.getS3AgeoffList(context, client, now);
+        MultipartUploadListing uploadList = processor.getS3AgeoffListAndAgeoffLocalState(context, client, now);
         Assert.assertEquals(3, uploadList.getMultipartUploads().size());
 
         MultipartUpload upload0 = uploadList.getMultipartUploads().get(0);
         processor.abortS3MultipartUpload(client, BUCKET_NAME, upload0);
 
-        uploadList = processor.getS3AgeoffList(context, client, now+1000);
+        uploadList = processor.getS3AgeoffListAndAgeoffLocalState(context, client, now+1000);
         Assert.assertEquals(2, uploadList.getMultipartUploads().size());
 
         final Map<String, String> attrs = new HashMap<>();
@@ -757,7 +758,7 @@ public class ITPutS3Object extends AbstractS3IT {
         runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME), attrs);
         runner.run();
 
-        uploadList = processor.getS3AgeoffList(context, client, now+2000);
+        uploadList = processor.getS3AgeoffListAndAgeoffLocalState(context, client, now+2000);
         Assert.assertEquals(0, uploadList.getMultipartUploads().size());
     }
 
