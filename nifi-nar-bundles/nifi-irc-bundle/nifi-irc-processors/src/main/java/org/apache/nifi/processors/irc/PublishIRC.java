@@ -16,6 +16,11 @@
  */
 package org.apache.nifi.processors.irc;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -29,14 +34,8 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processors.irc.handlers.PublisherEventHandler;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.concurrent.TimeUnit;
 
 @Tags({"publish", "irc"})
 @TriggerSerially
@@ -52,66 +51,51 @@ import java.util.concurrent.TimeUnit;
         @WritesAttribute(attribute = "irc.server", description = "The values IRC channel where the message was received from")})
 public class PublishIRC extends AbstractIRCProcessor {
 
-    private volatile PublisherEventHandler eventHandler;
-
+    private volatile String channel = null;
     @OnStopped
     public void onUnscheduled(ProcessContext context) {
-        clearSetup(client, eventHandler);
-        client = null;
+        if(channel != null) {
+            ircClientService.leaveChannel(this.getIdentifier(), channel);
+            channel = null;
+        }
     }
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
         ProcessSession session = sessionFactory.createSession();
 
-
-
-        if (client == null) {
+        if (channel == null) {
             // Initialise the handler that will be provided to the setupClient super method
-            this.eventHandler = new PublisherEventHandler(context, sessionFactory, getLogger());
-            this.client = ircClientService.getClient();
-            this.client.getEventManager().registerEventListener(this.eventHandler);
+            channel = context.getProperty(IRC_CHANNEL).getValue();
+            ircClientService.joinChannel(this.getIdentifier(), channel, null);
         }
 
-        if (ircClientService.getIsConnected().get()) {
-            FlowFile flowFile = session.get();
-            if (flowFile == null) {
-                return;
-            }
+        FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return;
+        }
 
-            final StopWatch watch = new StopWatch();
-            watch.start();
-
-            // ensure queue is set to no delay
-            ircClientService.setAndGetDelay(0);
-
-            final String targetChannel = context.getProperty(IRC_CHANNEL).getValue();
-            // Verify if should join the channel
-            if (!ircClientService.getClient().getChannels().contains(targetChannel)) {
-                ircClientService.joinChannel(targetChannel);
-            }
-
-
-            // Do the FlowFile magic
-            if (client.getChannel(targetChannel).isPresent()) {
-                client.sendMessage(targetChannel, readContent(session, flowFile).toString());
-                session.transfer(flowFile, REL_SUCCESS);
-                watch.stop();
-                session.getProvenanceReporter().send(flowFile, "irc://"
-                                .concat(client.getServerInfo().getAddress().get())
-                                .concat("/")
-                                // Device if append channel to URI or not
-                                .concat(targetChannel.concat("/")),
-                        watch.getDuration(TimeUnit.MILLISECONDS)
-                );
-            } else {
+        final StopWatch watch = new StopWatch();
+        watch.start();
+        
+        try {
+            ircClientService.sendMessage(channel, readContent(session, flowFile).toString());
+    
+            session.transfer(flowFile, REL_SUCCESS);
+            watch.stop();
+            session.getProvenanceReporter().send(flowFile, "irc://"
+                    .concat(ircClientService.getServer())
+                    .concat("/")
+                    // Device if append channel to URI or not
+                    .concat(channel.concat("/")),
+                    watch.getDuration(TimeUnit.MILLISECONDS)
+                    );
+        } catch (Exception e) {
                 // The client seems to be waiting for join command to complete, rollback for now
-                session.rollback(false);
-            }
-            // Commit no matter what
-            session.commit();
+            session.rollback(false);
+            context.yield();
         }
-        context.yield();
+        session.commit();
     }
 
     /**

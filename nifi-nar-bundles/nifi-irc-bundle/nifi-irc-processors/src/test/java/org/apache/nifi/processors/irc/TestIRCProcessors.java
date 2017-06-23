@@ -99,10 +99,7 @@ public class TestIRCProcessors {
 
         List<MockFlowFile> results = new LinkedList<>();
 
-        while (!ircClientService.getIsConnected().get()) {
-            // wait for connection
-        }
-
+        
         runner.enqueue("test test test chocolate!");
 
         // Run a few times hoping all client setup will be complete by the end of the last iteration
@@ -156,9 +153,7 @@ public class TestIRCProcessors {
 
         List<MockFlowFile> results = new LinkedList<>();
 
-        while (!ircClientService.getIsConnected().get()) {
-            // wait for connection
-        }
+
 
         runner.enqueue("test test test chocolate!");
 

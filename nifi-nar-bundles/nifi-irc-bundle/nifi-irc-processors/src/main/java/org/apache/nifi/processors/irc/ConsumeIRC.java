@@ -65,8 +65,6 @@ public class ConsumeIRC extends AbstractIRCProcessor {
             .required(true)
             .build();
 
-    private volatile ConsumerEventHandler eventHandler;
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         List<PropertyDescriptor> propDescs = new ArrayList<>();
@@ -76,30 +74,21 @@ public class ConsumeIRC extends AbstractIRCProcessor {
         propDescs.add(IRC_STRIP_FORMATTING);
         return propDescs;
     }
-
+    private volatile String channel = null;
     @OnStopped
     public void onUnscheduled(ProcessContext context) {
-        clearSetup(client, eventHandler);
-        this.client = null;
+        if(channel != null) {
+            ircClientService.leaveChannel(this.getIdentifier(), channel);
+            this.channel = null;
+        }
     }
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory ) throws ProcessException {
-        if (client == null) {
-            // Initialise client
-            // Initialise the handler that will be provided to the setupClient super method
-            this.eventHandler = new ConsumerEventHandler(context, sessionFactory, getLogger());
-            // initialize the client
-            this.client = setupClient(context, sessionFactory, ircClientService, eventHandler);
-        }
-
-        // Verify if should join the channel
-        if (!this.client.getChannels().contains(context.getProperty(IRC_CHANNEL).getValue())) {
-            ircClientService.joinChannel(context.getProperty(IRC_CHANNEL).getValue());
-        }
-
-
-        if (ircClientService.getIsConnected().get()) {
+        if (channel == null) {
+            channel = context.getProperty(IRC_CHANNEL).getValue();
+            ircClientService.joinChannel(this.getIdentifier(), channel, 
+                    new ConsumerEventHandler(context, sessionFactory, getLogger()));
         }
         // Let KICL take care of the session.
         context.yield();

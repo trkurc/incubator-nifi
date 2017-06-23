@@ -20,21 +20,17 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.kitteh.irc.client.library.Client;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 
-@Tags({"example"})
-@CapabilityDescription("Example Service API.")
+@Tags({"irc"})
+@CapabilityDescription("IRC Service API.")
 public interface IRCClientService extends ControllerService {
 
     // public void execute()  throws ProcessException;
 
-    public void joinChannel(String channel)  throws ProcessException;
+    public void joinChannel(String handlerId, String channel, IrcMessageHandler handler)  throws ProcessException;
+    public void leaveChannel(String handlerId, String channel);
+    public void sendMessage(String channel, String message);
+    public String getServer();
 
-    public Client getClient()  throws ProcessException;
-
-    public AtomicBoolean getIsConnected()  throws ProcessException;
-
-    public int setAndGetDelay(int i);
 }

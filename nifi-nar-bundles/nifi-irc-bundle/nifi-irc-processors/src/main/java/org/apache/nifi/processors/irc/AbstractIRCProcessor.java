@@ -16,22 +16,19 @@
  */
 package org.apache.nifi.processors.irc;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.irc.IRCClientService;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.irc.handlers.EventHandler;
-import org.kitteh.irc.client.library.Client;
-
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 abstract class AbstractIRCProcessor extends AbstractSessionFactoryProcessor {
     public static PropertyDescriptor IRC_CLIENT_SERVICE = new PropertyDescriptor.Builder()
@@ -56,7 +53,6 @@ abstract class AbstractIRCProcessor extends AbstractSessionFactoryProcessor {
             .build();
 
     protected volatile IRCClientService ircClientService;
-    protected volatile Client client = null;
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -80,14 +76,5 @@ abstract class AbstractIRCProcessor extends AbstractSessionFactoryProcessor {
 
         ircClientService = (IRCClientService) controllerService;
     }
-
-    protected Client setupClient(final ProcessContext context, final ProcessSessionFactory sessionFactory, IRCClientService ircClientService, EventHandler eventHandler) {
-        ircClientService.getClient().getEventManager().registerEventListener(eventHandler);
-        return ircClientService.getClient();
-    }
-
-   protected void clearSetup(Client client, EventHandler eventHandler) {
-        client.getEventManager().unregisterEventListener(eventHandler);
-   }
 
 }

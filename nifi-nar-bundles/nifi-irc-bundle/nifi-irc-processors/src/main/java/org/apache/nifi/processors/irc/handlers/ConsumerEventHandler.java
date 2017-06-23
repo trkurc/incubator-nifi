@@ -19,6 +19,8 @@ package org.apache.nifi.processors.irc.handlers;
 import net.engio.mbassy.listener.Handler;
 import net.engio.mbassy.listener.Invoke;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.irc.IrcMessage;
+import org.apache.nifi.irc.IrcMessageHandler;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -39,36 +41,19 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 
-public class ConsumerEventHandler extends EventHandler {
+public class ConsumerEventHandler implements IrcMessageHandler {
+    final ProcessContext context;
+    final ProcessSessionFactory sessionFactory;
+    final ComponentLog logger;
 
     public ConsumerEventHandler(ProcessContext context, ProcessSessionFactory sessionFactory, ComponentLog logger) {
-        super(context, sessionFactory, logger);
+        this.context = context;
+        this.sessionFactory = sessionFactory;
+        this.logger = logger;
     }
 
-    @Handler(delivery = Invoke.Asynchronously)
-    protected void onPrivateMessageReceived(PrivateMessageEvent event) {
-        logger.info("Received private message '{}' from {} while waiting for messages on {} ",
-                new Object[] {event.getMessage(), event.getActor().getName(), context.getProperty(ConsumeIRC.IRC_CHANNEL).getValue()});
-        if (context.getProperty(ConsumeIRC.IRC_PROCESS_PRIV_MESSAGES).asBoolean()) {
-            turnEventIntoFlowFile(event);
-        } else {
-            event.sendReply(String.format("Hi %s. Thank you for your message but I am not looking to chat with strangers.",
-                    String.valueOf(event.getActor().getNick())));
-        }
-    }
-
-    @Handler(delivery = Invoke.Asynchronously)
-    protected void onChannelMessageReceived(ChannelMessageEvent event) {
-        // verify if the message was sent to the channel the processor is consuming
-        if (event.getChannel().getName().equals(context.getProperty(ConsumeIRC.IRC_CHANNEL).getValue())) {
-
-            logger.info("Received message '{}'  on channel {} while waiting for messages on {} ",
-                    new Object[]{event.getMessage(), event.getChannel().getName(), context.getProperty(ConsumeIRC.IRC_CHANNEL).getValue()});
-            turnEventIntoFlowFile(event);
-        }
-    }
-
-    private void turnEventIntoFlowFile(final MessageEvent messageEvent) {
+    @Override
+    public void handleMessage(IrcMessage message) {
         final ProcessSession processSession = sessionFactory.createSession();
         final StopWatch watch = new StopWatch();
         watch.start();
@@ -80,37 +65,31 @@ public class ConsumerEventHandler extends EventHandler {
                 @Override
                 public void process(OutputStream out) throws IOException {
                     if (context.getProperty(ConsumeIRC.IRC_STRIP_FORMATTING).asBoolean()) {
-                        out.write(Format.stripAll(messageEvent.getMessage()).getBytes());
+                        out.write(Format.stripAll(message.getMessage()).getBytes());
                     } else {
-                        out.write(messageEvent.getMessage().getBytes());
+                        out.write(message.getMessage().getBytes());
                     }
                 }
             });
 
             final Map<String, String> attributes = new HashMap<>();
-
-
-            // Extract metadata and add as attributes of a channel message via casting
-            if (messageEvent instanceof ChannelMessageEvent) {
-                attributes.put("irc.sender", ((ChannelMessageEvent) messageEvent).getActor().getName());
-                attributes.put("irc.channel", ((ChannelMessageEvent) messageEvent).getChannel().getName());
+            if (message.hasChannel()) {
+                attributes.put("irc.channel", message.getChannel());
             }
-            // Private messages lack channels
-            if (messageEvent instanceof PrivateMessageEvent) {
-                attributes.put("irc.sender", ((PrivateMessageEvent) messageEvent).getActor().getName());
-            }
+            attributes.put("irc.sender", message.getSender());
+
 
             // But all come from servers
-            attributes.put("irc.server", messageEvent.getClient().getServerInfo().getAddress().get());
+            attributes.put("irc.server", message.getServer());
             flowFile = processSession.putAllAttributes(flowFile, attributes);
 
             watch.stop();
             processSession.getProvenanceReporter()
                     .receive(flowFile, "irc://"
-                            .concat(messageEvent.getClient().getServerInfo().getAddress().get())
+                            .concat(message.getServer())
                             .concat("/")
                             // Device if append channel to URI or not
-                            .concat((messageEvent instanceof ChannelMessageEvent) ? ((ChannelMessageEvent) messageEvent).getChannel().getName().concat("/") : ""),
+                            .concat((message.hasChannel()) ? message.getChannel().concat("/") : ""),
                             watch.getDuration(TimeUnit.MILLISECONDS)
                             );
 
@@ -123,5 +102,8 @@ public class ConsumerEventHandler extends EventHandler {
             processSession.rollback();
         }
     }
+
+
+
 }
 
