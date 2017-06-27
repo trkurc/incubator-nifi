@@ -75,11 +75,16 @@ public class ConsumeIRC extends AbstractIRCProcessor {
         return propDescs;
     }
     private volatile String channel = null;
+    private volatile boolean subscribedToPrivate = false;
     @OnStopped
     public void onUnscheduled(ProcessContext context) {
         if(channel != null) {
             ircClientService.leaveChannel(this.getIdentifier(), channel);
             this.channel = null;
+            if(subscribedToPrivate == true) {
+                ircClientService.unsubscribeFromPrivateMessages(this.getIdentifier());
+                subscribedToPrivate = false;
+            }
         }
     }
 
@@ -87,8 +92,12 @@ public class ConsumeIRC extends AbstractIRCProcessor {
     public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory ) throws ProcessException {
         if (channel == null) {
             channel = context.getProperty(IRC_CHANNEL).getValue();
-            ircClientService.joinChannel(this.getIdentifier(), channel, 
-                    new ConsumerEventHandler(context, sessionFactory, getLogger()));
+            final ConsumerEventHandler handler = new ConsumerEventHandler(context, sessionFactory, getLogger());
+            ircClientService.joinChannel(this.getIdentifier(), channel, handler);
+            if(context.getProperty(IRC_PROCESS_PRIV_MESSAGES).asBoolean() == true) {
+                ircClientService.subscribeToPrivateMessages(this.getIdentifier(), handler);
+                subscribedToPrivate = true;
+            }
         }
         // Let KICL take care of the session.
         context.yield();

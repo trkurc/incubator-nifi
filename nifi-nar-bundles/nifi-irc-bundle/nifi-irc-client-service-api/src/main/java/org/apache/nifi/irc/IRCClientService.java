@@ -26,10 +26,10 @@ import org.apache.nifi.processor.exception.ProcessException;
 @CapabilityDescription("IRC Service API.")
 public interface IRCClientService extends ControllerService {
 
-    // public void execute()  throws ProcessException;
-
     public void joinChannel(String handlerId, String channel, IrcMessageHandler handler)  throws ProcessException;
     public void leaveChannel(String handlerId, String channel);
+    public void subscribeToPrivateMessages(String handlerId, IrcMessageHandler handler);
+    public void unsubscribeFromPrivateMessages(String identifier);
     public void sendMessage(String channel, String message);
     public String getServer();
 

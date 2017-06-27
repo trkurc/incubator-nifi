@@ -56,6 +56,8 @@ import org.kitteh.irc.client.library.event.channel.ChannelMessageEvent;
 import org.kitteh.irc.client.library.event.channel.RequestedChannelJoinCompleteEvent;
 import org.kitteh.irc.client.library.event.client.ClientConnectedEvent;
 import org.kitteh.irc.client.library.event.client.ClientConnectionClosedEvent;
+import org.kitteh.irc.client.library.event.helper.UnexpectedChannelLeaveEvent;
+import org.kitteh.irc.client.library.event.user.PrivateMessageEvent;
 
 import net.engio.mbassy.listener.Handler;
 import net.engio.mbassy.listener.Invoke;
@@ -115,7 +117,7 @@ public class StandardIRCClientService extends AbstractControllerService implemen
     private static final List<PropertyDescriptor> PROPERTIES;
     private Client ircClient;
     private ComponentLog logger;
-    protected AtomicBoolean connectionStatus = new AtomicBoolean(false);
+    protected AtomicBoolean connected = new AtomicBoolean(false);
 
     protected String clientIdentification;
 
@@ -137,8 +139,10 @@ public class StandardIRCClientService extends AbstractControllerService implemen
 
     private final Map<String, Map<String, IrcMessageHandler>> channelHandlers = 
             new ConcurrentHashMap<String, Map<String, IrcMessageHandler>>();
+    private final Map<String,IrcMessageHandler> privateMessageHandlers = 
+            new ConcurrentHashMap<String, IrcMessageHandler>();
     private final ReentrantLock channelLock = new ReentrantLock();
-    private String server;
+    private volatile String server;
 
     /**
      * @param context
@@ -169,7 +173,6 @@ public class StandardIRCClientService extends AbstractControllerService implemen
         } else {
             // Enabled
             clientSkeleton.secure(true);
-            SSLContext sslContext;
             TrustManagerFactory tmf;
 
             // Is key configured? If yes, populate and let it go...
@@ -180,9 +183,7 @@ public class StandardIRCClientService extends AbstractControllerService implemen
                 if (!StringUtils.isEmpty(keyPassword) && !StringUtils.isEmpty(keyFile) ) {
                     clientSkeleton.secureKeyPassword(keyPassword);
                     clientSkeleton.secureKey(new File(keyFile));
-                    sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.REQUIRED);
                 } else {
-                    sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE);
                 }
 
                 try {
@@ -201,16 +202,11 @@ public class StandardIRCClientService extends AbstractControllerService implemen
 
             }
         }
-        try {
+
         this.ircClient = clientSkeleton.build();
         ircClient.getEventManager().registerEventListener(this);
-        this.server = ircClient.getServerInfo().getAddress().get();
-        // Setup the Server Handlers
-        
-        }
-        catch (Throwable t) {
-            t.printStackTrace();
-        }
+        this.connected.set(false);
+
     }
 
     @OnDisabled
@@ -221,7 +217,7 @@ public class StandardIRCClientService extends AbstractControllerService implemen
         stopWatch.start();
 
         this.ircClient.shutdown(clientIdentification + " - is going to rest a bit...");
-        while (this.connectionStatus.get() || ( stopWatch.getElapsed(TimeUnit.MILLISECONDS) <= timeOut ) ) {
+        while (this.connected.get() || ( stopWatch.getElapsed(TimeUnit.MILLISECONDS) <= timeOut ) ) {
             // Wait for the disconnection
         }
         stopWatch.stop();
@@ -232,7 +228,6 @@ public class StandardIRCClientService extends AbstractControllerService implemen
         @Override
         public void handleMessage(IrcMessage message) {
             // Do Nothing
-            
         }
     };
 
@@ -263,7 +258,27 @@ public class StandardIRCClientService extends AbstractControllerService implemen
             ircClient.addChannel(channel);
         }
     }
+    @Override
+    public void subscribeToPrivateMessages(String handlerId, IrcMessageHandler handler) {
+        try {
+            channelLock.lock();
+            privateMessageHandlers.put(handlerId, handler);
+        } finally {
+            channelLock.unlock();
+        }
+    }
 
+    @Override
+    public void unsubscribeFromPrivateMessages(String handlerId) {
+        try {
+            channelLock.lock();
+            privateMessageHandlers.remove(handlerId);
+        } finally {
+            channelLock.unlock();
+        }
+    }
+
+    @Override
     public void leaveChannel(String handlerId,String channel){
         boolean doLeave = false;
         try {
@@ -286,21 +301,24 @@ public class StandardIRCClientService extends AbstractControllerService implemen
         }
     }
 
-//    @Handler(delivery = Invoke.Asynchronously)
-//    protected void onPrivateMessageReceived(PrivateMessageEvent event) {
-//        logger.info("Received private message '{}' from {} while waiting for messages on {} ",
-//                new Object[] {event.getMessage(), event.getActor().getName(), context.getProperty(ConsumeIRC.IRC_CHANNEL).getValue()});
-//        if (context.getProperty(ConsumeIRC.IRC_PROCESS_PRIV_MESSAGES).asBoolean()) {
-//            turnEventIntoFlowFile(event);
-//        } else {
-//            event.sendReply(String.format("Hi %s. Thank you for your message but I am not looking to chat with strangers.",
-//                    String.valueOf(event.getActor().getNick())));
-//        }
-//    }
+    @Handler(delivery = Invoke.Asynchronously)
+    protected void onPrivateMessageReceived(PrivateMessageEvent event) {
+        logger.info("Received private message '{}' from {}", new Object[] {event.getMessage(), event.getActor().getName()});
+        final IrcMessage message = new WrappedMessageEvent(event);
+        try {
+            channelLock.lock();
+            for (IrcMessageHandler handler : privateMessageHandlers.values()) {
+                handler.handleMessage(message);
+            }
+        } finally {
+            channelLock.unlock();
+        }
+    }
 
     @Handler(delivery = Invoke.Asynchronously)
     protected void onChannelMessageReceived(ChannelMessageEvent event) {
         event.getChannel();
+        IrcMessage message = new WrappedMessageEvent(event);
         try {
             channelLock.lock();
             final Map<String, IrcMessageHandler> handlers = channelHandlers.get(event.getChannel().getName());
@@ -308,7 +326,6 @@ public class StandardIRCClientService extends AbstractControllerService implemen
                 logger.warn("message received for channel {} with no handlers", new Object[]{});
                 return;
             }
-            IrcMessage message = new WrappedMessageEvent(event);
             for (IrcMessageHandler handler : handlers.values()) {
                 if(handler != NO_HANDLER) {
                     handler.handleMessage(message);
@@ -319,29 +336,25 @@ public class StandardIRCClientService extends AbstractControllerService implemen
             channelLock.unlock();
         }
     }
+
     @Handler
     protected void onConnect(ClientConnectedEvent event) {
-        connectionStatus.set(true);
-        logger.info("Successfully connected to: " + event.getServerInfo().getAddress().get());
-        // If not inside all the desired channel, try to join
-//        if (!event.getClient().getChannels().contains(requestedChannels) || event.getClient().getChannels().isEmpty()) {
-//            // chop the already joined channels
-//            Set<String> pendingChannels = new HashSet<>(requestedChannels);
-//            pendingChannels.removeAll(event.getClient().getChannels());
-//            pendingChannels.forEach(pendingChannel -> event.getClient().addChannel(pendingChannel));
-//        }
+        connected.set(true);
+        server = event.getServerInfo().getAddress().get();
+        logger.info("Successfully connected to: " + server);
     }
 
     @Handler
     protected void onDisconnect(ClientConnectionClosedEvent event) {
-        connectionStatus.set(false);
+        connected.set(false);
         // isReconnecting is used to KICL to state if re-connection is being attempted
         // e.g. connection dropped but client is trying to reconnect
         if (event.isReconnecting()) {
             logger.warn("Connection to IRC server dropped! Attempting to reconnect");
         } else {
             // This in theory should only be invoked during shutdown
-            logger.info("Successfully disconnected from: " + event.getClient().getServerInfo().getAddress().get());
+            logger.info("Successfully disconnected from: " + server);
+            server = null;
         }
     }
 
@@ -350,8 +363,15 @@ public class StandardIRCClientService extends AbstractControllerService implemen
         logger.info("Joined channel {} ", new Object[] {event.getAffectedChannel().get().getName()});
     }
 
+    @Handler(delivery = Invoke.Asynchronously)
+    protected void onChannelPart(UnexpectedChannelLeaveEvent event) {
+        // TODO: what to do when parting a channel unexpectedly due to Kick?
+        logger.info("Left channel {} ", new Object[] {event.getChannel().getName()});
+    }
+
     @Override
     public void sendMessage(String channel, String message) {
+        // TODO: should return false if not connected?
         ircClient.sendMessage(channel, message);
     }
 
