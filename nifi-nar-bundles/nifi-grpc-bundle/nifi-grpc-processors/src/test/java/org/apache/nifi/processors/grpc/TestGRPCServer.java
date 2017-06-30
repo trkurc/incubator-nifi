@@ -16,16 +16,17 @@
  */
 package org.apache.nifi.processors.grpc;
 
-import org.apache.nifi.ssl.StandardSSLContextService;
-
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.net.ServerSocket;
 import java.security.KeyStore;
 import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManagerFactory;
+
+import org.apache.nifi.ssl.StandardSSLContextService;
 
 import io.grpc.BindableService;
 import io.grpc.CompressorRegistry;
@@ -44,9 +45,6 @@ import io.netty.handler.ssl.SslContextBuilder;
 public class TestGRPCServer<T extends BindableService> {
     public static final String HOST = "localhost";
     public static final String NEED_CLIENT_AUTH = "needClientAuth";
-    // Used to represent the ephemeral port range.
-    private static final int PORT_START = 49152;
-    private static final int PORT_END = 65535;
     private final Class<T> clazz;
     private Server server;
     private Map<String, String> sslProperties;
@@ -77,9 +75,12 @@ public class TestGRPCServer<T extends BindableService> {
      *
      * @return a port to use for client/server comms
      */
-    public static int randomPort() {
-        // add 1 because upper bound is exclusive
-        return ThreadLocalRandom.current().nextInt(PORT_START, PORT_END + 1);
+    public static int randomPort() throws IOException {
+        ServerSocket socket = new ServerSocket(0);
+        socket.setReuseAddress(true);
+        final int port = socket.getLocalPort();
+        socket.close();
+        return port;
     }
 
     /**

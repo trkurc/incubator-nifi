@@ -377,36 +377,31 @@ public class TestInvokeGRPC {
 
     @Test
     public void testServerConnectionFail() throws Exception {
-        final TestGRPCServer<DummyFlowFileService> server = new TestGRPCServer<>(DummyFlowFileService.class);
 
-        try {
-            final int port = TestGRPCServer.randomPort();
-            server.start(port);
+        final int port = TestGRPCServer.randomPort();
 
-            // no gRPC server running @ localhost:50052, so processor will fail
-            final TestRunner runner = TestRunners.newTestRunner(InvokeGRPC.class);
-            runner.setProperty(InvokeGRPC.PROP_SERVICE_HOST, TestGRPCServer.HOST);
-            runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, "49151");
+        // should be no gRPC server running @ that port, so processor will fail
+        final TestRunner runner = TestRunners.newTestRunner(InvokeGRPC.class);
+        runner.setProperty(InvokeGRPC.PROP_SERVICE_HOST, TestGRPCServer.HOST);
+        runner.setProperty(InvokeGRPC.PROP_SERVICE_PORT, Integer.toString(port));
 
-            final MockFlowFile mockFlowFile = new MockFlowFile(SUCCESS);
-            runner.enqueue(mockFlowFile);
-            runner.run();
+        final MockFlowFile mockFlowFile = new MockFlowFile(SUCCESS);
+        runner.enqueue(mockFlowFile);
+        runner.run();
 
-            runner.assertTransferCount(InvokeGRPC.REL_RESPONSE, 0);
-            runner.assertTransferCount(InvokeGRPC.REL_SUCCESS_REQ, 0);
-            runner.assertTransferCount(InvokeGRPC.REL_RETRY, 0);
-            runner.assertTransferCount(InvokeGRPC.REL_NO_RETRY, 0);
-            runner.assertTransferCount(InvokeGRPC.REL_FAILURE, 1);
+        runner.assertTransferCount(InvokeGRPC.REL_RESPONSE, 0);
+        runner.assertTransferCount(InvokeGRPC.REL_SUCCESS_REQ, 0);
+        runner.assertTransferCount(InvokeGRPC.REL_RETRY, 0);
+        runner.assertTransferCount(InvokeGRPC.REL_NO_RETRY, 0);
+        runner.assertTransferCount(InvokeGRPC.REL_FAILURE, 1);
 
-            final List<MockFlowFile> responseFiles = runner.getFlowFilesForRelationship(InvokeGRPC.REL_FAILURE);
-            assertThat(responseFiles.size(), equalTo(1));
-            final MockFlowFile response = responseFiles.get(0);
-            response.assertAttributeEquals(InvokeGRPC.SERVICE_HOST, TestGRPCServer.HOST);
-            response.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, "49151");
-            response.assertAttributeEquals(InvokeGRPC.EXCEPTION_CLASS, "io.grpc.StatusRuntimeException");
-        } finally {
-            server.stop();
-        }
+        final List<MockFlowFile> responseFiles = runner.getFlowFilesForRelationship(InvokeGRPC.REL_FAILURE);
+        assertThat(responseFiles.size(), equalTo(1));
+        final MockFlowFile response = responseFiles.get(0);
+        response.assertAttributeEquals(InvokeGRPC.SERVICE_HOST, TestGRPCServer.HOST);
+        response.assertAttributeEquals(InvokeGRPC.SERVICE_PORT, Integer.toString(port));
+        response.assertAttributeEquals(InvokeGRPC.EXCEPTION_CLASS, "io.grpc.StatusRuntimeException");
+
     }
 
     @Test
